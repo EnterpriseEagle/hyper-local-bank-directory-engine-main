@@ -12,6 +12,7 @@ import { SITE_URL } from "@/lib/site-url";
 const BASE_URL = SITE_URL;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const generatedAt = new Date();
   const [
     suburbs, 
     states, 
@@ -29,50 +30,68 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPages: MetadataRoute.Sitemap = [
     {
       url: BASE_URL,
-      lastModified: new Date(),
+      lastModified: generatedAt,
       changeFrequency: "daily",
       priority: 1,
+    },
+    {
+      url: `${BASE_URL}/bank`,
+      lastModified: generatedAt,
+      changeFrequency: "weekly",
+      priority: 0.85,
+    },
+    {
+      url: `${BASE_URL}/closures`,
+      lastModified: generatedAt,
+      changeFrequency: "daily",
+      priority: 0.8,
+    },
+    {
+      url: `${BASE_URL}/search`,
+      lastModified: generatedAt,
+      changeFrequency: "monthly",
+      priority: 0.3,
     },
   ];
 
   const statePages: MetadataRoute.Sitemap = states.map((s) => ({
     url: `${BASE_URL}/${s.stateSlug}`,
-    lastModified: new Date(),
+    lastModified: generatedAt,
     changeFrequency: "weekly" as const,
     priority: 0.8,
   }));
 
   const suburbPages: MetadataRoute.Sitemap = suburbs.map((s) => ({
     url: `${BASE_URL}/${s.stateSlug}/${s.slug}`,
-    lastModified: new Date(),
+    lastModified: generatedAt,
     changeFrequency: "daily" as const,
     priority: 0.6,
   }));
 
   const atmPages: MetadataRoute.Sitemap = suburbs.map((s) => ({
     url: `${BASE_URL}/atm/${s.slug}`,
-    lastModified: new Date(),
+    lastModified: generatedAt,
     changeFrequency: "daily" as const,
     priority: 0.5,
   }));
 
   const bankPages: MetadataRoute.Sitemap = banks.map((b) => ({
     url: `${BASE_URL}/bank/${b.slug}`,
-    lastModified: new Date(),
+    lastModified: generatedAt,
     changeFrequency: "weekly" as const,
     priority: 0.7,
   }));
 
   const bankStatePages: MetadataRoute.Sitemap = bankStates.map((bs) => ({
     url: `${BASE_URL}/bank/${bs.bankSlug}/${bs.stateSlug}`,
-    lastModified: new Date(),
+    lastModified: generatedAt,
     changeFrequency: "weekly" as const,
     priority: 0.6,
   }));
 
   const bankSuburbPages: MetadataRoute.Sitemap = bankSuburbs.map((bs) => ({
     url: `${BASE_URL}/bank/${bs.bankSlug}/${bs.stateSlug}/${bs.suburbSlug}`,
-    lastModified: new Date(),
+    lastModified: generatedAt,
     changeFrequency: "daily" as const,
     priority: 0.5,
   }));

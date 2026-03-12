@@ -7,43 +7,87 @@ import Link from "next/link";
 import { SearchBar } from "@/components/search-bar";
 import { MobileNav } from "@/components/mobile-nav";
 import { SITE_URL } from "@/lib/site-url";
+import {
+  DEFAULT_KEYWORDS,
+  SITE_DESCRIPTION,
+  SITE_LEGAL_NAME,
+  SITE_NAME,
+  absoluteUrl,
+  buildOrganizationSchema,
+  buildWebSiteSchema,
+} from "@/lib/seo";
+import { StructuredData } from "@/components/structured-data";
 
 export const metadata: Metadata = {
-    title: {
-      default: "BANK NEAR ME\u00ae - Is Your Bank Actually Working? Live ATM & Branch Status",
-      template: "%s | BANK NEAR ME\u00ae",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: SITE_LEGAL_NAME,
+    template: "%s | BANK NEAR ME®",
+  },
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
+  authors: [{ name: SITE_LEGAL_NAME }],
+  creator: SITE_LEGAL_NAME,
+  publisher: SITE_LEGAL_NAME,
+  referrer: "origin-when-cross-origin",
+  formatDetection: {
+    address: false,
+    email: false,
+    telephone: false,
+  },
+  manifest: absoluteUrl("/manifest.webmanifest"),
+  icons: {
+    icon: [{ url: "/favicon.ico", sizes: "any" }],
+    shortcut: [{ url: "/favicon.ico" }],
+    apple: [{ url: "/favicon.ico" }],
+  },
+  alternates: {
+    types: {
+      "application/rss+xml": absoluteUrl("/feed.xml"),
+      "text/plain": absoluteUrl("/llms.txt"),
     },
-      description:
-        "Australia's crowd-sourced bank status tracker. Report ATM outages, branch closures, and long queues in real-time across 15,000+ suburbs. DownDetector for banks.",
-    metadataBase: new URL(SITE_URL),
-    openGraph: {
-      type: "website",
-      locale: "en_AU",
-      siteName: "BANK NEAR ME\u00ae",
-      title: "BANK NEAR ME\u00ae - Is Your Bank Actually Working?",
-      description:
-        "Australia's crowd-sourced bank status tracker. Live ATM outages, branch closures, and queue reports across 15,000+ suburbs.",
+  },
+  keywords: DEFAULT_KEYWORDS,
+  openGraph: {
+    type: "website",
+    locale: "en_AU",
+    siteName: SITE_LEGAL_NAME,
+    title: `${SITE_LEGAL_NAME} - Live Bank Branch and ATM Status Across Australia`,
+    description: SITE_DESCRIPTION,
+    url: SITE_URL,
+    images: [
+      {
+        url: absoluteUrl("/opengraph-image"),
+        width: 1200,
+        height: 630,
+        alt: `${SITE_LEGAL_NAME} - Live Bank Status Tracker`,
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${SITE_LEGAL_NAME} - Live Bank Status Tracker`,
+    description: SITE_DESCRIPTION,
+    images: [absoluteUrl("/opengraph-image")],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
     },
-    twitter: {
-      card: "summary_large_image",
-      title: "BANK NEAR ME\u00ae - Live Bank Status Tracker",
-      description:
-        "Live crowd-sourced status for Australian banks. Report ATM outages and branch closures across 15,000+ suburbs.",
-    },
-  keywords: [
-    "bank branches Australia",
-    "ATM near me",
-    "ATM out of cash",
-    "bank branch closed",
-    "bank closures Australia",
-    "find bank",
-    "bank status",
-    "ATM empty",
-    "Commonwealth Bank branch",
-    "Westpac branch",
-    "ANZ branch",
-    "NAB branch",
-  ],
+  },
+  other: {
+    "commission-factory-verification": "632a548d09944472a61b9ee7f3157f9d",
+    "geo.region": "AU",
+    "geo.placename": "Australia",
+    "geo.position": "-25.2744;133.7751",
+    ICBM: "-25.2744, 133.7751",
+  },
 };
 
 export default function RootLayout({
@@ -52,8 +96,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en-AU">
       <body className="antialiased bg-black text-white min-h-screen flex flex-col">
+        <StructuredData
+          data={[buildOrganizationSchema(), buildWebSiteSchema()]}
+        />
         <Script
           id="orchids-browser-logs"
           src="https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/scripts/orchids-browser-logs.js"

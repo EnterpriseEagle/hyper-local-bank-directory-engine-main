@@ -13,71 +13,83 @@ export function generateBankSEOContent(
   type: "state" | "suburb" | "national",
   stats: { openBranches: number; atms: number; closedBranches: number }
 ): SEOContent {
-  const isBig4 = ["Commonwealth Bank", "ANZ", "Westpac", "NAB"].includes(bankName);
-  
   const titles = {
     national: [
-      `${bankName} Branches & ATM Locations Australia | Branch Tracker`,
-      `Find ${bankName} Near Me - All ${stats.openBranches} Branch Locations`,
-      `${bankName} Status: Are Branches Open Today? | Live Updates`
+      `${bankName} Branches, ATMs & Closures in Australia | Live Tracker`,
+      `${bankName} Near Me Australia | ${stats.openBranches} Branches and ${stats.atms} ATMs`,
+      `${bankName} Australia Status | Branch Locations, Closures and ATM Finder`,
     ],
     state: [
-      `${bankName} Branches in ${locationName} | Open Locations & ATMs`,
-      `Find ${bankName} Near Me in ${locationName} - Branch Tracker`,
-      `${bankName} ${locationName}: Branch Closures & Open Hours`
+      `${bankName} Branches and ATMs in ${locationName} | Live Locations`,
+      `${bankName} Near Me in ${locationName} | Open Branches, ATMs and Closures`,
+      `${bankName} ${locationName} Status | Hours, Addresses and ATM Finder`,
     ],
     suburb: [
-      `${bankName} ${locationName} - Branch & ATM Status | Near Me`,
-      `Is ${bankName} ${locationName} Open? Hours & Address`,
-      `${bankName} Branch & ATM in ${locationName}, ${stats.openBranches > 0 ? 'Open Now' : 'Status'}`
-    ]
+      `${bankName} in ${locationName} | Branch, ATM and Live Status`,
+      `Is ${bankName} Open in ${locationName}? Branch Hours, Address and ATM Info`,
+      `${bankName} ${locationName} Near Me | ${stats.openBranches} Branches and ${stats.atms} ATMs`,
+    ],
   };
 
   const descriptions = {
-    national: `Looking for a ${bankName} branch? We track all ${stats.openBranches} active ${bankName} locations across Australia. See opening hours, BSB numbers, and ATM status.`,
-    state: `Find all ${stats.openBranches} ${bankName} branches and ATMs across ${locationName}. Get live status updates, addresses, and fee-free ATM locations in ${locationName}.`,
-    suburb: `Find the nearest ${bankName} in ${locationName}. Check if the ${locationName} branch is open, find ${bankName} ATMs, and see recent status reports from the community.`
+    national: `Track ${bankName} across Australia with ${stats.openBranches} open branches, ${stats.atms} ATMs, and ${stats.closedBranches} recent closures. Find addresses, branch details, ATM access, and live local status reports.`,
+    state: `Find ${stats.openBranches} ${bankName} branches and ${stats.atms} ATMs across ${locationName}. Check open locations, branch closures, addresses, and recent community status reports before you visit.`,
+    suburb: `Find the nearest ${bankName} in ${locationName}. Check branch hours, ATM access, recent closures, and live community reports before you leave home.`
   };
 
   const intros = {
-    national: `${bankName} operates a network of ${stats.openBranches} branches and ${stats.atms} ATMs across Australia. While many physical locations have closed recently, our tracker helps you find the nearest open ${bankName} branch with live status updates.`,
-    state: `In ${locationName}, ${bankName} currently maintains ${stats.openBranches} active branch locations. Our community-driven tracker provides the most up-to-date information on ${bankName} status in ${locationName}, including recent closures and reduced hours.`,
-    suburb: `${bankName} in ${locationName} serves the local community with banking services. Whether you need to visit a teller or find a fee-free ATM, we provide the latest details on the ${bankName} ${locationName} location.`
+    national: `${bankName} operates ${stats.openBranches} open branches and ${stats.atms} ATMs across Australia. We surface network coverage, known closures, and local status signals so people can find a working ${bankName} location faster.`,
+    state: `${bankName} currently maintains ${stats.openBranches} open branches and ${stats.atms} ATMs in ${locationName}. This page tracks the bank's footprint in the state, including recent closures and location-level discovery data.`,
+    suburb: `${bankName} in ${locationName} serves the local community with branch access, ATMs, and day-to-day banking services. This page pulls together local location data and fresh community status reports in one place.`
   };
+
+  const locationLabel =
+    type === "national" ? "Australia" : locationName;
 
   return {
     title: titles[type][0],
     description: descriptions[type],
-    h1: `${bankName} Locations in ${locationName}`,
+    h1:
+      type === "national"
+        ? `${bankName} Locations in Australia`
+        : `${bankName} Locations in ${locationName}`,
     intro: intros[type],
     faq: [
       {
-        q: `How many ${bankName} branches are in ${locationName}?`,
-        a: `There are currently ${stats.openBranches} active ${bankName} branches in ${locationName}.`
+        q: `How many ${bankName} branches are in ${locationLabel}?`,
+        a: `${bankName} currently has ${stats.openBranches} open branch${stats.openBranches === 1 ? "" : "es"} tracked in ${locationLabel}.`
       },
       {
-        q: `Where is the nearest ${bankName} ATM in ${locationName}?`,
-        a: `You can find ${bankName} ATMs at our listed locations in ${locationName}. Most are available 24/7 for cash withdrawals.`
-      }
-    ]
+        q: `How many ${bankName} ATMs are listed for ${locationLabel}?`,
+        a: `We currently track ${stats.atms} ${bankName} ATM location${stats.atms === 1 ? "" : "s"} in ${locationLabel}, alongside branch-level coverage and closure data.`
+      },
+      {
+        q: `How do I check whether a ${bankName} branch is still open in ${locationLabel}?`,
+        a: `Use the location listings on this page to review open branches, recent closures, addresses, and any live status reports submitted by the community before you visit.`
+      },
+    ],
   };
 }
 
 export function generateATMSEOContent(suburbName: string, atmCount: number): SEOContent {
   return {
-    title: `Find Fee-Free ATMs in ${suburbName} | Near Me Status`,
-    description: `Looking for an ATM in ${suburbName}? Find all ${atmCount} fee-free and major bank ATMs in ${suburbName}. Check live status and avoid "out of cash" machines.`,
+    title: `ATMs in ${suburbName} | Fee-Free, Major Banks and Live Status`,
+    description: `Looking for an ATM in ${suburbName}? Find ${atmCount} ATM locations, compare major bank options, and check live local status reports before you head out.`,
     h1: `ATMs in ${suburbName}`,
-    intro: `Finding a working ATM in ${suburbName} shouldn't be hard. We track ${atmCount} ATM locations across ${suburbName}, from Big 4 banks to independent operators, with live reports on cash availability.`,
+    intro: `Finding a working ATM in ${suburbName} should be fast. We track ${atmCount} ATM locations across ${suburbName}, from major Australian banks to independent operators, with live local reporting on availability and issues.`,
     faq: [
       {
         q: `Which ATMs are fee-free in ${suburbName}?`,
-        a: `Most major bank ATMs (CBA, Westpac, ANZ, NAB) are now fee-free for all Australian cardholders in ${suburbName}.`
+        a: `Many major bank ATMs in ${suburbName}, including Commonwealth Bank, Westpac, ANZ, and NAB, are fee-free for most Australian cardholders. Check each listed ATM for the provider and location details.`
       },
       {
         q: `Is there a 24-hour ATM in ${suburbName}?`,
-        a: `Yes, most external bank ATMs in ${suburbName} offer 24/7 access for withdrawals and balance enquiries.`
-      }
-    ]
+        a: `Many external bank ATMs in ${suburbName} are available 24/7, but access can depend on whether the machine sits inside a branch foyer, shopping centre, or other restricted site.`
+      },
+      {
+        q: `How do I avoid empty or offline ATMs in ${suburbName}?`,
+        a: `Use the ATM listings and recent live reports on this page to spot cash outages, machine issues, and nearby alternatives before you make the trip.`
+      },
+    ],
   };
 }

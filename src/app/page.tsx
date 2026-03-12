@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { HeroSearch } from "@/components/hero-search";
 import { SwitchOfferCard } from "@/components/switch-banner";
+import { StructuredData } from "@/components/structured-data";
 import {
   getStats,
   getStateList,
@@ -10,7 +11,27 @@ import {
   getOutageHotspots,
   STATE_NAMES,
 } from "@/lib/data";
-import { SITE_URL } from "@/lib/site-url";
+import {
+  absoluteUrl,
+  buildCollectionPageSchema,
+  buildFAQSchema,
+  buildItemListSchema,
+  buildMetadata,
+} from "@/lib/seo";
+
+export const metadata = buildMetadata({
+  title: "BANK NEAR ME® - Is Your Bank Actually Working? Live ATM & Branch Status",
+  description:
+    "Search Australian suburbs to find live bank branch and ATM status, recent closures, outage reports, and queue updates before you make the trip.",
+  path: "/",
+  keywords: [
+    "bank near me live tracker",
+    "Australian bank outage tracker",
+    "bank branches by suburb Australia",
+    "ATM outage reports Australia",
+    "branch closure tracker Australia",
+  ],
+});
 
 const REPORT_LABELS: Record<string, { label: string; icon: string; color: string }> = {
   working: { label: "Working", icon: "✅", color: "text-emerald-400" },
@@ -18,6 +39,25 @@ const REPORT_LABELS: Record<string, { label: string; icon: string; color: string
   branch_closed: { label: "Branch Closed", icon: "❌", color: "text-red-400" },
   long_queue: { label: "Long Queue", icon: "⏳", color: "text-amber-400" },
 };
+
+const HOME_FAQ = [
+  {
+    q: "How do I find a working bank branch near me in Australia?",
+    a: "Search by suburb or postcode to see local branch and ATM listings, recent closure signals, and live community reports before you visit.",
+  },
+  {
+    q: "Which Australian banks are covered on BANK NEAR ME?",
+    a: "The directory covers major national banks, regional banks, digital banks, and local credit unions across thousands of Australian suburbs.",
+  },
+  {
+    q: "How current are the ATM and branch status updates?",
+    a: "Location data is paired with fresh community reports for outages, closures, and long queues so each suburb page reflects current ground-level signals, not just static directory data.",
+  },
+  {
+    q: "Where can I track recent bank branch closures in Australia?",
+    a: "The closures tracker highlights recent branch shutdowns and links directly to suburb pages where you can find nearby alternatives and live service status.",
+  },
+];
 
 function timeAgo(dateStr: string) {
   const now = Date.now();
@@ -48,6 +88,59 @@ export default async function HomePage() {
     outageStats.branchClosed +
     outageStats.longQueue +
     outageStats.working;
+
+  const homeSchema = buildCollectionPageSchema({
+    name: "Australian bank branches, ATMs and live status by suburb",
+    description:
+      "Browse Australian states and suburbs to find bank branches, ATMs, recent closures, and live local status reports.",
+    url: absoluteUrl("/"),
+    numberOfItems: states.length,
+    about: {
+      "@type": "Country",
+      name: "Australia",
+    },
+    mainEntity: buildItemListSchema(
+      "Australian states with live bank coverage",
+      states.map((state) => ({
+        name: state.state,
+        url: absoluteUrl(`/${state.stateSlug}`),
+        description: `${state.count} tracked suburb${state.count === 1 ? "" : "s"} in ${state.state}`,
+      }))
+    ),
+  });
+
+  const datasetSchema = {
+    "@context": "https://schema.org",
+    "@type": "Dataset",
+    name: "BANK NEAR ME live branch and ATM status dataset",
+    description:
+      `Coverage across ${stats.suburbs.toLocaleString()} Australian suburbs with ${stats.openBranches.toLocaleString()} open branches, ${stats.atms.toLocaleString()} ATMs, and ${stats.totalReports.toLocaleString()} community reports.`,
+    url: absoluteUrl("/"),
+    inLanguage: "en-AU",
+    spatialCoverage: {
+      "@type": "Country",
+      name: "Australia",
+    },
+    creator: {
+      "@type": "Organization",
+      name: "BANK NEAR ME®",
+      url: absoluteUrl("/"),
+    },
+    keywords: [
+      "Australian bank branches",
+      "ATM locations",
+      "branch closures",
+      "queue reports",
+      "bank outages",
+    ],
+    distribution: {
+      "@type": "DataDownload",
+      encodingFormat: "application/rss+xml",
+      contentUrl: absoluteUrl("/feed.xml"),
+    },
+  };
+
+  const faqSchema = buildFAQSchema(HOME_FAQ);
 
   return (
     <div>
@@ -516,6 +609,29 @@ export default async function HomePage() {
       </section>
 
 
+
+      <section className="border-t border-white/5 px-6 py-16 sm:px-10 sm:py-20 bg-black">
+        <div className="mx-auto max-w-[900px]">
+          <p className="mb-3 text-[10px] uppercase tracking-[0.2em] text-white/30 font-medium">
+            FAQ
+          </p>
+          <h2 className="mb-10 font-serif text-[clamp(1.75rem,4vw,3rem)] font-light leading-[1.1] text-white">
+            Questions People Ask Before Visiting a Branch
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-white/5">
+            {HOME_FAQ.map((item) => (
+              <div key={item.q} className="bg-black p-6 sm:p-8">
+                <h3 className="mb-3 text-[16px] font-medium text-white/90">
+                  {item.q}
+                </h3>
+                <p className="text-[14px] font-light leading-[1.8] text-white/45">
+                  {item.a}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
       {/* ===== BOTTOM CTA ===== */}
         <section className="px-6 py-14 sm:px-10 sm:py-20 bg-black">
