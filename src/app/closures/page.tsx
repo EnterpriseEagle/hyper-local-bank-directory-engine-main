@@ -8,12 +8,13 @@ import {
   STATE_NAMES
 } from "@/lib/data";
 import { SwitchOfferCard } from "@/components/switch-banner";
+import { SITE_URL } from "@/lib/site-url";
 
 export const metadata: Metadata = {
   title: "Bank Branch Closures Australia 2026 - Live Tracker",
   description: "Track the latest bank branch closures across Australia. See which suburbs are losing branches and find the nearest open locations. Commonwealth, ANZ, Westpac, and NAB closure data.",
   alternates: {
-    canonical: "https://banknearme.com.au/closures",
+    canonical: `${SITE_URL}/closures`,
   },
 };
 

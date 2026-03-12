@@ -7,8 +7,9 @@ import {
   getAllBankStateCombos, 
   getAllBankStateSuburbCombos 
 } from "@/lib/data";
+import { SITE_URL } from "@/lib/site-url";
 
-const BASE_URL = "https://banknearme.com.au";
+const BASE_URL = SITE_URL;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [

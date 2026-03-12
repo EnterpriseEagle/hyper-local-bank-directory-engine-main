@@ -2,12 +2,13 @@
 import { Metadata } from "next";
 import Link from "next/link";
 import { getAllBanks, getStats } from "@/lib/data";
+import { SITE_URL } from "@/lib/site-url";
 
 export const metadata: Metadata = {
   title: "Banks in Australia - Browse Branches & ATMs by Bank",
   description: "Browse all major and regional banks in Australia. Find branch locations, ATM status, and contact details for Commonwealth Bank, Westpac, ANZ, NAB, and more.",
   alternates: {
-    canonical: "https://banknearme.com.au/bank",
+    canonical: `${SITE_URL}/bank`,
   },
 };
 
@@ -108,7 +109,7 @@ export default async function BanksPage() {
             "itemListElement": banks.map((b, i) => ({
               "@type": "ListItem",
               "position": i + 1,
-              "url": `https://banknearme.com.au/bank/${b.slug}`,
+              "url": `${SITE_URL}/bank/${b.slug}`,
               "name": b.name
             }))
           }),

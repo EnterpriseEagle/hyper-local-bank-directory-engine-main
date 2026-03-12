@@ -10,6 +10,7 @@ import {
   getOutageHotspots,
   STATE_NAMES,
 } from "@/lib/data";
+import { SITE_URL } from "@/lib/site-url";
 
 const REPORT_LABELS: Record<string, { label: string; icon: string; color: string }> = {
   working: { label: "Working", icon: "✅", color: "text-emerald-400" },
@@ -75,8 +76,9 @@ export default async function HomePage() {
             </h1>
 
             <p className="mb-5 max-w-[560px] text-[15px] font-light leading-[1.6] text-white/45">
-              Live crowd-sourced status for {stats.suburbs.toLocaleString()} Australian
-              suburbs. Know before you go.
+              Search {stats.suburbs.toLocaleString()} Australian suburbs to check if nearby
+              bank branches and ATMs are open, out of cash, or recently closed before
+              you make the trip.
             </p>
 
             {/* Search Bar */}
@@ -545,14 +547,9 @@ export default async function HomePage() {
             "@context": "https://schema.org",
             "@type": "WebSite",
               name: "BANK NEAR ME\u00ae",
-              url: "https://banknearme.com.au",
+              url: SITE_URL,
                 description:
                   "Australia's crowd-sourced bank status tracker. Live ATM outages, branch closures, and queue reports across 15,000+ suburbs.",
-            potentialAction: {
-              "@type": "SearchAction",
-              target: "https://banknearme.com.au/search?q={search_term_string}",
-              "query-input": "required name=search_term_string",
-            },
           }),
         }}
       />

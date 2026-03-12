@@ -6,6 +6,7 @@ import Script from "next/script";
 import Link from "next/link";
 import { SearchBar } from "@/components/search-bar";
 import { MobileNav } from "@/components/mobile-nav";
+import { SITE_URL } from "@/lib/site-url";
 
 export const metadata: Metadata = {
     title: {
@@ -14,7 +15,7 @@ export const metadata: Metadata = {
     },
       description:
         "Australia's crowd-sourced bank status tracker. Report ATM outages, branch closures, and long queues in real-time across 15,000+ suburbs. DownDetector for banks.",
-    metadataBase: new URL("https://banknearme.com.au"),
+    metadataBase: new URL(SITE_URL),
     openGraph: {
       type: "website",
       locale: "en_AU",
