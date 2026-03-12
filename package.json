@@ -9,7 +9,9 @@
         "dev": "next dev --turbopack",
         "build": "next build --webpack",
         "start": "next start --hostname 0.0.0.0 --port ${PORT:-3000}",
-        "lint": "next lint"
+        "lint": "next lint",
+        "db:migrate:monetization": "bun src/lib/db/migrate-monetization.ts",
+        "db:migrate:control-plane": "bun src/lib/db/migrate-control-plane.ts"
     },
     "dependencies": {
         "@babel/parser": "^7.28.5",

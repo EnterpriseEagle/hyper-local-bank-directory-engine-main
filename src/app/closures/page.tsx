@@ -16,6 +16,7 @@ import {
   buildFAQSchema,
   buildItemListSchema,
   buildMetadata,
+  buildWebPageSchema,
 } from "@/lib/seo";
 
 const currentYear = new Date().getFullYear();
@@ -62,6 +63,12 @@ export default async function ClosuresPage() {
     description: "Live tracker for Australian bank branch closures and suburb-level impact.",
     url: absoluteUrl("/closures"),
     numberOfItems: recentClosures.length,
+  });
+  const webPageSchema = buildWebPageSchema({
+    name: `Bank Branch Closures Australia ${currentYear}`,
+    description:
+      "Live closure tracker for Australian bank branches, impacted suburbs, and nearby alternatives.",
+    url: absoluteUrl("/closures"),
   });
   const closureListSchema = buildItemListSchema(
     "Recent Australian bank branch closures",
@@ -217,7 +224,13 @@ export default async function ClosuresPage() {
       </section>
 
       <StructuredData
-        data={[collectionSchema, breadcrumbSchema, closureListSchema, faqSchema].filter(Boolean)}
+        data={[
+          webPageSchema,
+          collectionSchema,
+          breadcrumbSchema,
+          closureListSchema,
+          faqSchema,
+        ].filter(Boolean)}
       />
     </div>
   );

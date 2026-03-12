@@ -10,6 +10,7 @@ import {
   buildFAQSchema,
   buildItemListSchema,
   buildMetadata,
+  buildWebPageSchema,
 } from "@/lib/seo";
 import { toTitleCase } from "@/lib/utils";
 
@@ -79,6 +80,19 @@ export default async function StatePage({ params }: Props) {
     description: `Directory of bank branches, ATMs, and local service coverage across ${stateName}.`,
     url: absoluteUrl(`/${state}`),
     numberOfItems: suburbs.length,
+    about: {
+      "@type": "AdministrativeArea",
+      name: stateName,
+      containedInPlace: {
+        "@type": "Country",
+        name: "Australia",
+      },
+    },
+  });
+  const webPageSchema = buildWebPageSchema({
+    name: `Bank branches and ATMs in ${stateName}`,
+    description: `State-level directory for bank branches, ATMs, closures, and suburb coverage across ${stateName}.`,
+    url: absoluteUrl(`/${state}`),
     about: {
       "@type": "AdministrativeArea",
       name: stateName,
@@ -323,7 +337,14 @@ export default async function StatePage({ params }: Props) {
       </section>
 
       <StructuredData
-        data={[collectionSchema, breadcrumbSchema, suburbListSchema, bankListSchema, faqSchema].filter(Boolean)}
+        data={[
+          webPageSchema,
+          collectionSchema,
+          breadcrumbSchema,
+          suburbListSchema,
+          bankListSchema,
+          faqSchema,
+        ].filter(Boolean)}
       />
     </div>
   );

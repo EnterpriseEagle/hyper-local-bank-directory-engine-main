@@ -2,6 +2,8 @@ import Link from "next/link";
 import { HeroSearch } from "@/components/hero-search";
 import { StructuredData } from "@/components/structured-data";
 import {
+  getBankBranchStats,
+  getBankBySlug,
   getBanksByBranchCoverage,
   getRecentClosures,
   getStateList,
@@ -15,6 +17,7 @@ import {
   buildFAQSchema,
   buildItemListSchema,
   buildMetadata,
+  buildWebPageSchema,
 } from "@/lib/seo";
 import { toTitleCase } from "@/lib/utils";
 
@@ -29,6 +32,8 @@ export const metadata = buildMetadata({
     "bank branches near me",
     "open bank near me",
     "bank near me suburb search",
+    "CBA near me",
+    "Commonwealth Bank near me",
   ],
 });
 
@@ -48,12 +53,21 @@ const FAQ = [
 ];
 
 export default async function BankNearMePage() {
-  const [stats, states, topSuburbs, topBanks, closures] = await Promise.all([
+  const cbaPromise = getBankBySlug("commonwealth-bank").then(async (bank) => {
+    if (!bank) return null;
+    return {
+      bank,
+      stats: await getBankBranchStats(bank.id),
+    };
+  });
+
+  const [stats, states, topSuburbs, topBanks, closures, cba] = await Promise.all([
     getStats(),
     getStateList(),
     getTopSuburbsByBranchCount(12),
     getBanksByBranchCoverage(12),
     getRecentClosures(8),
+    cbaPromise,
   ]);
 
   const breadcrumbSchema = buildBreadcrumbSchema([
@@ -67,6 +81,12 @@ export default async function BankNearMePage() {
       "National hub for finding nearby bank branches, ATMs, and suburb-level banking coverage in Australia.",
     url: absoluteUrl("/bank-near-me"),
     numberOfItems: topSuburbs.length,
+  });
+  const webPageSchema = buildWebPageSchema({
+    name: "Bank Near Me Australia",
+    description:
+      "National search hub for nearby bank branches, suburb-level coverage, closures, and live service signals across Australia.",
+    url: absoluteUrl("/bank-near-me"),
   });
 
   const suburbListSchema = buildItemListSchema(
@@ -142,6 +162,70 @@ export default async function BankNearMePage() {
                   {label}
                 </div>
               </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="border-b border-white/5 px-6 py-16 sm:px-10 sm:py-20">
+        <div className="mx-auto max-w-[1100px]">
+          <div className="mb-8">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-white/30 font-medium">
+              Popular Near Me Searches
+            </p>
+            <h2 className="mt-3 font-serif text-[clamp(1.75rem,4vw,3rem)] font-light text-white">
+              Strengthen the high-intent search routes
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-px bg-white/5">
+            {[
+              {
+                label: "ATM Near Me",
+                href: "/atm-near-me",
+                meta: `${stats.atms.toLocaleString()} mapped ATMs`,
+                description:
+                  "Send cash-access searches straight into the ATM hub instead of forcing everything through branch intent.",
+              },
+              {
+                label: "CBA Near Me",
+                href: "/cba-near-me",
+                meta: cba
+                  ? `${cba.stats.openBranches.toLocaleString()} branches • ${cba.stats.atms.toLocaleString()} ATMs`
+                  : "Commonwealth Bank finder",
+                description:
+                  "Give Commonwealth Bank its own near-me entry point instead of burying that demand inside the generic bank directory.",
+              },
+              {
+                label: "Commonwealth Bank Directory",
+                href: "/bank/commonwealth-bank",
+                meta: "National Big Four coverage",
+                description:
+                  "Open the full CBA directory with state and suburb drill-down pages for stronger bank-specific intent.",
+              },
+              {
+                label: "Latest Closures",
+                href: "/closures",
+                meta: `${stats.closedBranches.toLocaleString()} closures tracked`,
+                description:
+                  "Catch users looking for nearby alternatives after a branch shuts or local access changes.",
+              },
+            ].map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="group bg-black p-6 transition-all duration-300 hover:bg-white/[0.03]"
+              >
+                <p className="text-[10px] uppercase tracking-[0.2em] text-white/30">
+                  {item.meta}
+                </p>
+                <h3 className="mt-3 text-[20px] font-light text-white transition-transform group-hover:translate-x-1">
+                  {item.label}
+                </h3>
+                <p className="mt-3 text-[13px] leading-relaxed text-white/45">
+                  {item.description}
+                </p>
+              </Link>
             ))}
           </div>
         </div>
@@ -317,7 +401,14 @@ export default async function BankNearMePage() {
       </section>
 
       <StructuredData
-        data={[breadcrumbSchema, pageSchema, suburbListSchema, bankListSchema, faqSchema]}
+        data={[
+          webPageSchema,
+          breadcrumbSchema,
+          pageSchema,
+          suburbListSchema,
+          bankListSchema,
+          faqSchema,
+        ]}
       />
     </div>
   );

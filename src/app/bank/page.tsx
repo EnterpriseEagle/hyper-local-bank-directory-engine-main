@@ -9,6 +9,7 @@ import {
   buildCollectionPageSchema,
   buildItemListSchema,
   buildMetadata,
+  buildWebPageSchema,
 } from "@/lib/seo";
 
 export const metadata: Metadata = buildMetadata({
@@ -50,6 +51,12 @@ export default async function BanksPage() {
         url: absoluteUrl(`/bank/${bank.slug}`),
       }))
     ),
+  });
+  const webPageSchema = buildWebPageSchema({
+    name: "Australian bank directory",
+    description:
+      "Directory hub for Australian banks, national branch coverage, ATM coverage, and bank-specific location pages.",
+    url: absoluteUrl("/bank"),
   });
 
   const breadcrumbSchema = buildBreadcrumbSchema([
@@ -130,7 +137,7 @@ export default async function BanksPage() {
         </div>
       </div>
       
-      <StructuredData data={[collectionSchema, breadcrumbSchema]} />
+      <StructuredData data={[webPageSchema, collectionSchema, breadcrumbSchema]} />
     </div>
   );
 }

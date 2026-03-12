@@ -2,6 +2,8 @@ import Link from "next/link";
 import { HeroSearch } from "@/components/hero-search";
 import { StructuredData } from "@/components/structured-data";
 import {
+  getBankBranchStats,
+  getBankBySlug,
   getBanksByAtmCoverage,
   getStateList,
   getStats,
@@ -14,6 +16,7 @@ import {
   buildFAQSchema,
   buildItemListSchema,
   buildMetadata,
+  buildWebPageSchema,
 } from "@/lib/seo";
 import { toTitleCase } from "@/lib/utils";
 
@@ -28,6 +31,8 @@ export const metadata = buildMetadata({
     "cash withdrawal near me",
     "major bank ATM finder",
     "ATM near me postcode search",
+    "CBA ATM near me",
+    "Commonwealth Bank ATM near me",
   ],
 });
 
@@ -47,11 +52,20 @@ const FAQ = [
 ];
 
 export default async function ATMNearMePage() {
-  const [stats, states, topSuburbs, topBanks] = await Promise.all([
+  const cbaPromise = getBankBySlug("commonwealth-bank").then(async (bank) => {
+    if (!bank) return null;
+    return {
+      bank,
+      stats: await getBankBranchStats(bank.id),
+    };
+  });
+
+  const [stats, states, topSuburbs, topBanks, cba] = await Promise.all([
     getStats(),
     getStateList(),
     getTopSuburbsByAtmCount(12),
     getBanksByAtmCoverage(12),
+    cbaPromise,
   ]);
 
   const breadcrumbSchema = buildBreadcrumbSchema([
@@ -65,6 +79,12 @@ export default async function ATMNearMePage() {
       "National hub for finding nearby ATMs, ATM-heavy suburbs, and major bank ATM networks across Australia.",
     url: absoluteUrl("/atm-near-me"),
     numberOfItems: topSuburbs.length,
+  });
+  const webPageSchema = buildWebPageSchema({
+    name: "ATM Near Me Australia",
+    description:
+      "National ATM search hub for suburb-level ATM coverage, major bank networks, outages, and nearby alternatives across Australia.",
+    url: absoluteUrl("/atm-near-me"),
   });
 
   const suburbListSchema = buildItemListSchema(
@@ -140,6 +160,70 @@ export default async function ATMNearMePage() {
                   {label}
                 </div>
               </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="border-b border-white/5 px-6 py-16 sm:px-10 sm:py-20">
+        <div className="mx-auto max-w-[1100px]">
+          <div className="mb-8">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-white/30 font-medium">
+              Popular ATM Searches
+            </p>
+            <h2 className="mt-3 font-serif text-[clamp(1.75rem,4vw,3rem)] font-light text-white">
+              Connect ATM intent to the strongest bank pages
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-px bg-white/5">
+            {[
+              {
+                label: "CBA Near Me",
+                href: "/cba-near-me",
+                meta: cba
+                  ? `${cba.stats.atms.toLocaleString()} CBA ATMs tracked`
+                  : "Commonwealth Bank finder",
+                description:
+                  "Give Commonwealth Bank ATM searches their own landing page instead of burying them inside generic ATM coverage.",
+              },
+              {
+                label: "Commonwealth Bank Directory",
+                href: "/bank/commonwealth-bank",
+                meta: "Branches and ATMs by state",
+                description:
+                  "Open the full Commonwealth Bank directory when ATM intent overlaps with branch or service intent.",
+              },
+              {
+                label: "Bank Near Me",
+                href: "/bank-near-me",
+                meta: "Compare branch and ATM access",
+                description:
+                  "Push ATM searches into the broader bank finder when people need nearby branches as well as machines.",
+              },
+              {
+                label: "Search All Suburbs",
+                href: "/search",
+                meta: "Suburb and postcode discovery",
+                description:
+                  "Use the search page as a catch-all path when people know the location but not the exact bank network they need.",
+              },
+            ].map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="group bg-black p-6 transition-all duration-300 hover:bg-white/[0.03]"
+              >
+                <p className="text-[10px] uppercase tracking-[0.2em] text-white/30">
+                  {item.meta}
+                </p>
+                <h3 className="mt-3 text-[20px] font-light text-white transition-transform group-hover:translate-x-1">
+                  {item.label}
+                </h3>
+                <p className="mt-3 text-[13px] leading-relaxed text-white/45">
+                  {item.description}
+                </p>
+              </Link>
             ))}
           </div>
         </div>
@@ -277,7 +361,14 @@ export default async function ATMNearMePage() {
       </section>
 
       <StructuredData
-        data={[breadcrumbSchema, pageSchema, suburbListSchema, bankListSchema, faqSchema]}
+        data={[
+          webPageSchema,
+          breadcrumbSchema,
+          pageSchema,
+          suburbListSchema,
+          bankListSchema,
+          faqSchema,
+        ]}
       />
     </div>
   );

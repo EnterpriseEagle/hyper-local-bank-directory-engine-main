@@ -17,6 +17,7 @@ import {
   buildFAQSchema,
   buildItemListSchema,
   buildMetadata,
+  buildWebPageSchema,
 } from "@/lib/seo";
 
 export const metadata = buildMetadata({
@@ -108,6 +109,16 @@ export default async function HomePage() {
       }))
     ),
   });
+  const webPageSchema = buildWebPageSchema({
+    name: "BANK NEAR ME Australia home",
+    description:
+      "Live Australian bank branch, ATM, closure, and queue-status discovery hub.",
+    url: absoluteUrl("/"),
+    about: {
+      "@type": "Country",
+      name: "Australia",
+    },
+  });
 
   const datasetSchema = {
     "@context": "https://schema.org",
@@ -192,6 +203,7 @@ export default async function HomePage() {
               {[
                 ["Bank Near Me", "/bank-near-me"],
                 ["ATM Near Me", "/atm-near-me"],
+                ["CBA Near Me", "/cba-near-me"],
                 ["Browse All Banks", "/bank"],
                 ["Latest Closures", "/closures"],
               ].map(([label, href]) => (
@@ -672,7 +684,9 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <StructuredData data={[homeSchema, datasetSchema, faqSchema].filter(Boolean)} />
+      <StructuredData
+        data={[webPageSchema, homeSchema, datasetSchema, faqSchema].filter(Boolean)}
+      />
     </div>
   );
 }

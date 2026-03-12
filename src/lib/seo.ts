@@ -216,14 +216,43 @@ export function buildCollectionPageSchema(input: {
     name: input.name,
     description: input.description,
     url: input.url,
+    inLanguage: "en-AU",
     isPartOf: {
       "@id": absoluteUrl("/#website"),
+    },
+    mainEntityOfPage: input.url,
+    publisher: {
+      "@id": absoluteUrl("/#organization"),
     },
     ...(typeof input.numberOfItems === "number"
       ? { numberOfItems: input.numberOfItems }
       : {}),
     ...(input.about ? { about: input.about } : {}),
     ...(input.mainEntity ? { mainEntity: input.mainEntity } : {}),
+  };
+}
+
+export function buildWebPageSchema(input: {
+  name: string;
+  description: string;
+  url: string;
+  about?: JsonLd;
+}): JsonLd {
+  return {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    name: input.name,
+    description: input.description,
+    url: input.url,
+    inLanguage: "en-AU",
+    isPartOf: {
+      "@id": absoluteUrl("/#website"),
+    },
+    publisher: {
+      "@id": absoluteUrl("/#organization"),
+    },
+    primaryImageOfPage: absoluteUrl(DEFAULT_OG_IMAGE_PATH),
+    ...(input.about ? { about: input.about } : {}),
   };
 }
 

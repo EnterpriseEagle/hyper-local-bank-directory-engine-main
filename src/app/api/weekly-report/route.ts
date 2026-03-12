@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { generateWeeklyReport, saveWeeklyDigest } from "@/lib/revenue";
-import { sendWeeklyEmail } from "@/lib/email";
+import {
+  generatePortfolioWeeklyReport,
+  generateWeeklyReport,
+  savePortfolioWeeklyRollups,
+  saveWeeklyDigest,
+} from "@/lib/revenue";
+import { sendPortfolioWeeklyEmail } from "@/lib/email";
 import { affiliateFeaturesEnabled } from "@/lib/feature-flags";
 
 /**
@@ -8,7 +13,7 @@ import { affiliateFeaturesEnabled } from "@/lib/feature-flags";
  * Generates the weekly affiliate performance report and emails it.
  *
  * Protected by a simple secret token in the query string or header.
- * Set CRON_SECRET in your environment variables.
+ * Set REPORT_CRON_SECRET (or fall back to CRON_SECRET) in env.
  *
  * Trigger options:
  * 1. Vercel Cron: add to vercel.json
@@ -24,42 +29,45 @@ export async function GET(request: NextRequest) {
   const token = request.nextUrl.searchParams.get("token");
   const headerToken = request.headers.get("authorization")?.replace("Bearer ", "");
   const vercelCron = request.headers.get("x-vercel-cron-secret");
-  const secret = process.env.CRON_SECRET;
+  const secret =
+    process.env.REPORT_CRON_SECRET?.trim() ||
+    process.env.CRON_SECRET?.trim();
 
   if (!secret || (token !== secret && headerToken !== secret && vercelCron !== secret)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
-    // Calculate last 7 days
     const now = new Date();
     const weekEnd = now.toISOString().split("T")[0];
     const weekStartDate = new Date(now);
     weekStartDate.setDate(weekStartDate.getDate() - 7);
     const weekStart = weekStartDate.toISOString().split("T")[0];
+    const periodStartIso = weekStartDate.toISOString();
+    const periodEndIso = now.toISOString();
 
-    // Generate report
-    const report = await generateWeeklyReport(
-      weekStartDate.toISOString(),
-      now.toISOString()
-    );
+    const legacyReport = await generateWeeklyReport(periodStartIso, periodEndIso);
+    const portfolioReport = await generatePortfolioWeeklyReport(periodStartIso, periodEndIso);
 
-    // Save to DB
-    await saveWeeklyDigest(report);
+    await saveWeeklyDigest(legacyReport);
 
-    // Send email
-    const emailSent = await sendWeeklyEmail(report);
+    const emailSent = await sendPortfolioWeeklyEmail(portfolioReport);
+    await savePortfolioWeeklyRollups(portfolioReport, {
+      emailSentAt: emailSent ? new Date().toISOString() : null,
+    });
 
     return NextResponse.json({
       success: true,
       emailSent,
       summary: {
         period: `${weekStart} to ${weekEnd}`,
-        totalClicks: report.totalClicks,
-        estimatedConversions: report.estimatedConversions,
-        estimatedRevenue: `$${report.estimatedRevenue.toFixed(2)}`,
-        confirmedRevenue: `$${report.confirmedRevenue.toFixed(2)}`,
-        topOffer: report.clicksByOffer[0]?.brand ?? "none",
+        totalClicks: portfolioReport.totalClicks,
+        totalSites: portfolioReport.totalSites,
+        connectedDomains: portfolioReport.connectedDomains,
+        estimatedRevenue: `$${portfolioReport.estimatedRevenue.toFixed(2)}`,
+        confirmedRevenue: `$${portfolioReport.confirmedRevenue.toFixed(2)}`,
+        topSite: portfolioReport.sites[0]?.displayName ?? "none",
+        topOffer: portfolioReport.topOffers[0]?.label ?? legacyReport.clicksByOffer[0]?.brand ?? "none",
       },
     });
   } catch (err) {

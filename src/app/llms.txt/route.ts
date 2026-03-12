@@ -1,5 +1,6 @@
 import { getAllBanks, getStateList, getStats } from "@/lib/data";
 import { absoluteUrl } from "@/lib/seo";
+import { SITEMAP_PATHS } from "@/lib/sitemap";
 
 export const revalidate = 3600;
 
@@ -28,13 +29,24 @@ export async function GET() {
     `- Closures tracker: ${absoluteUrl("/closures")}`,
     `- Bank near me hub: ${absoluteUrl("/bank-near-me")}`,
     `- ATM near me hub: ${absoluteUrl("/atm-near-me")}`,
+    `- CBA near me hub: ${absoluteUrl("/cba-near-me")}`,
     `- Banks directory: ${absoluteUrl("/bank")}`,
     `- RSS feed: ${absoluteUrl("/feed.xml")}`,
+    "",
+    "## Crawl Maps",
+    `- Core sitemap: ${absoluteUrl(SITEMAP_PATHS.core)}`,
+    `- State sitemap: ${absoluteUrl(SITEMAP_PATHS.states)}`,
+    `- Suburb sitemap: ${absoluteUrl(SITEMAP_PATHS.suburbs)}`,
+    `- ATM sitemap: ${absoluteUrl(SITEMAP_PATHS.atms)}`,
+    `- Bank sitemap: ${absoluteUrl(SITEMAP_PATHS.banks)}`,
+    `- Bank-state sitemap: ${absoluteUrl(SITEMAP_PATHS.bankStates)}`,
+    `- Bank-suburb sitemap: ${absoluteUrl(SITEMAP_PATHS.bankSuburbs)}`,
     "",
     "## Primary URL Patterns",
     `- State pages: ${absoluteUrl("/new-south-wales")}`,
     `- Suburb pages: ${absoluteUrl("/new-south-wales/parramatta-2150")}`,
     `- ATM pages: ${absoluteUrl("/atm/parramatta-2150")}`,
+    `- CBA near me page: ${absoluteUrl("/cba-near-me")}`,
     `- Bank pages: ${absoluteUrl("/bank/commonwealth-bank")}`,
     `- Bank-in-state pages: ${absoluteUrl("/bank/commonwealth-bank/new-south-wales")}`,
     `- Bank-in-suburb pages: ${absoluteUrl("/bank/commonwealth-bank/new-south-wales/parramatta-2150")}`,

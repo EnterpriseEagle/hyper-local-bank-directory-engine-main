@@ -1,5 +1,6 @@
 import { getAllBanks, getStateList, getStats } from "@/lib/data";
 import { absoluteUrl } from "@/lib/seo";
+import { SITEMAP_PATHS } from "@/lib/sitemap";
 
 export const revalidate = 3600;
 
@@ -31,10 +32,20 @@ export async function GET() {
     `- Search landing page: ${absoluteUrl("/search")}`,
     `- Bank near me hub: ${absoluteUrl("/bank-near-me")}`,
     `- ATM near me hub: ${absoluteUrl("/atm-near-me")}`,
+    `- CBA near me hub: ${absoluteUrl("/cba-near-me")}`,
     `- Banks directory: ${absoluteUrl("/bank")}`,
     `- Closures tracker: ${absoluteUrl("/closures")}`,
     `- RSS feed: ${absoluteUrl("/feed.xml")}`,
     `- llms.txt summary: ${absoluteUrl("/llms.txt")}`,
+    "",
+    "## Crawl Maps",
+    `- Core sitemap: ${absoluteUrl(SITEMAP_PATHS.core)}`,
+    `- State sitemap: ${absoluteUrl(SITEMAP_PATHS.states)}`,
+    `- Suburb sitemap: ${absoluteUrl(SITEMAP_PATHS.suburbs)}`,
+    `- ATM sitemap: ${absoluteUrl(SITEMAP_PATHS.atms)}`,
+    `- Bank sitemap: ${absoluteUrl(SITEMAP_PATHS.banks)}`,
+    `- Bank-state sitemap: ${absoluteUrl(SITEMAP_PATHS.bankStates)}`,
+    `- Bank-suburb sitemap: ${absoluteUrl(SITEMAP_PATHS.bankSuburbs)}`,
     "",
     "## States And Territories",
     ...states.flatMap((state) => [

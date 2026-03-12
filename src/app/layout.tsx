@@ -261,6 +261,7 @@ export default function RootLayout({
                     {[
                       ["Bank Near Me", "/bank-near-me"],
                       ["ATM Near Me", "/atm-near-me"],
+                      ["CBA Near Me", "/cba-near-me"],
                       ["Bank Closures", "/closures"],
                       ["Search All Suburbs", "/search"],
                       ["Browse All Banks", "/bank"],
