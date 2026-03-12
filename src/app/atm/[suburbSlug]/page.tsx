@@ -52,6 +52,31 @@ export default async function ATMSuburbPage({ params }: PageProps) {
   const atms = await getAtmsForSuburb(suburb.slug);
   const displayName = toTitleCase(suburb.name);
   const seo = generateATMSEOContent(displayName, atms.length);
+  const banksWithAtms = Array.from(
+    atms.reduce<
+      Map<
+        string,
+        {
+          bankName: string;
+          bankSlug: string;
+          atmCount: number;
+        }
+      >
+    >((map, atm) => {
+      const current = map.get(atm.bankSlug) ?? {
+        bankName: atm.bankName,
+        bankSlug: atm.bankSlug,
+        atmCount: 0,
+      };
+
+      if (atm.status === "open") {
+        current.atmCount += 1;
+      }
+
+      map.set(atm.bankSlug, current);
+      return map;
+    }, new Map()).values()
+  ).sort((a, b) => b.atmCount - a.atmCount || a.bankName.localeCompare(b.bankName));
   const pageUrl = absoluteUrl(`/atm/${suburb.slug}`);
   const breadcrumbSchema = buildBreadcrumbSchema([
     { name: "Home", url: absoluteUrl("/") },
@@ -80,6 +105,14 @@ export default async function ATMSuburbPage({ params }: PageProps) {
       name: atm.name,
       url: pageUrl,
       description: `${atm.bankName} - ${atm.address}`,
+    }))
+  );
+  const bankListSchema = buildItemListSchema(
+    `Banks with ATMs in ${displayName}`,
+    banksWithAtms.map((bank) => ({
+      name: bank.bankName,
+      url: absoluteUrl(`/bank/${bank.bankSlug}/${suburb.stateSlug}/${suburb.slug}`),
+      description: `${bank.atmCount} ATMs in ${displayName}`,
     }))
   );
   const faqSchema = buildFAQSchema(seo.faq);
@@ -173,6 +206,42 @@ export default async function ATMSuburbPage({ params }: PageProps) {
         </div>
       </section>
 
+      {banksWithAtms.length > 0 && (
+        <section className="border-t border-white/5 px-6 py-16 sm:px-10 sm:py-20 bg-black">
+          <div className="mx-auto max-w-[900px]">
+            <p className="mb-3 text-[10px] uppercase tracking-[0.2em] text-white/30 font-medium">
+              Browse by Bank
+            </p>
+            <h2 className="mb-8 font-serif text-[clamp(1.5rem,3vw,2.25rem)] font-light text-white">
+              Banks with ATMs in {displayName}
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px bg-white/5">
+              {banksWithAtms.map((bank) => (
+                <Link
+                  key={bank.bankSlug}
+                  href={`/bank/${bank.bankSlug}/${suburb.stateSlug}/${suburb.slug}`}
+                  className="group bg-black p-6 transition-all duration-300 hover:bg-white/[0.03]"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <h3 className="text-[17px] font-light text-white transition-transform group-hover:translate-x-1">
+                        {bank.bankName}
+                      </h3>
+                      <p className="mt-2 text-[11px] uppercase tracking-widest text-white/30">
+                        {bank.atmCount} ATMs in {displayName}
+                      </p>
+                    </div>
+                    <span className="text-white/20 transition-all duration-300 group-hover:text-white/50 group-hover:translate-x-1">
+                      &rarr;
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* FAQ */}
       <section className="px-6 py-16 sm:py-24 bg-black border-t border-white/5">
         <div className="mx-auto max-w-[640px]">
@@ -191,7 +260,7 @@ export default async function ATMSuburbPage({ params }: PageProps) {
       </section>
 
       <StructuredData
-        data={[collectionSchema, breadcrumbSchema, atmListSchema, faqSchema, ...atmSchemas].filter(Boolean)}
+        data={[collectionSchema, breadcrumbSchema, atmListSchema, bankListSchema, faqSchema, ...atmSchemas].filter(Boolean)}
       />
     </div>
   );

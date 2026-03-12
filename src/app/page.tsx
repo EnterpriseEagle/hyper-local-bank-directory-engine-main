@@ -187,6 +187,23 @@ export default async function HomePage() {
                 Check your suburb&apos;s status now
               </Link>
             </p>
+
+            <div className="mt-5 flex flex-wrap gap-3">
+              {[
+                ["Bank Near Me", "/bank-near-me"],
+                ["ATM Near Me", "/atm-near-me"],
+                ["Browse All Banks", "/bank"],
+                ["Latest Closures", "/closures"],
+              ].map(([label, href]) => (
+                <Link
+                  key={href}
+                  href={href}
+                  className="border border-white/10 px-3 py-2 text-[11px] uppercase tracking-[0.2em] text-white/40 transition-all duration-300 hover:border-white/25 hover:text-white/70"
+                >
+                  {label}
+                </Link>
+              ))}
+            </div>
           </div>
         </section>
 

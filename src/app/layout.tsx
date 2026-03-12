@@ -167,8 +167,8 @@ export default function RootLayout({
 
         {/* Footer - Minimal dark footer */}
         <footer className="border-t border-white/5 bg-black px-6 py-12 sm:px-10 mt-auto">
-          <div className="mx-auto max-w-[1000px]">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
+          <div className="mx-auto max-w-[1200px]">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8 mb-10">
               <div>
                 <span className="font-sans text-[13px] font-bold uppercase tracking-[0.15em] text-white">BANK NEAR ME<sup className="text-[7px]">®</sup></span>
                 <p className="mt-3 text-[13px] leading-relaxed text-white/30">
@@ -237,6 +237,30 @@ export default function RootLayout({
                       <li key={slug}>
                         <Link
                           href={`/bank/${slug}`}
+                          className="text-[12px] text-white/30 transition-colors duration-300 hover:text-white underline-reveal"
+                        >
+                          {name}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div>
+                  <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-white/50 mb-4">
+                    Popular Searches
+                  </p>
+                  <ul className="space-y-2">
+                    {[
+                      ["Bank Near Me", "/bank-near-me"],
+                      ["ATM Near Me", "/atm-near-me"],
+                      ["Bank Closures", "/closures"],
+                      ["Search All Suburbs", "/search"],
+                      ["Browse All Banks", "/bank"],
+                    ].map(([name, href]) => (
+                      <li key={href}>
+                        <Link
+                          href={href}
                           className="text-[12px] text-white/30 transition-colors duration-300 hover:text-white underline-reveal"
                         >
                           {name}

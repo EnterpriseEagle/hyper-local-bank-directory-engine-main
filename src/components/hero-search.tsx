@@ -18,7 +18,7 @@ export function HeroSearch() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const ref = useRef<HTMLDivElement>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {

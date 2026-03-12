@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { getSuburbsByState, STATE_NAMES, STATE_ABBR } from "@/lib/data";
+import { getBanksInState, getSuburbsByState, STATE_NAMES, STATE_ABBR } from "@/lib/data";
 import { StructuredData } from "@/components/structured-data";
 import {
   absoluteUrl,
@@ -40,7 +40,10 @@ export default async function StatePage({ params }: Props) {
   const stateName = STATE_NAMES[state];
   if (!stateName) notFound();
 
-  const suburbs = await getSuburbsByState(state);
+  const [suburbs, banksInState] = await Promise.all([
+    getSuburbsByState(state),
+    getBanksInState(state, 12),
+  ]);
   if (suburbs.length === 0) notFound();
 
   const stateAbbr = STATE_ABBR[state];
@@ -92,6 +95,14 @@ export default async function StatePage({ params }: Props) {
       name: `${toTitleCase(suburb.name)} ${suburb.postcode}`,
       url: absoluteUrl(`/${state}/${suburb.slug}`),
       description: `${suburb.branchCount} branch${suburb.branchCount === 1 ? "" : "es"} and ${suburb.atmCount} ATM${suburb.atmCount === 1 ? "" : "s"}`,
+    }))
+  );
+  const bankListSchema = buildItemListSchema(
+    `Popular banks in ${stateName}`,
+    banksInState.map((bank) => ({
+      name: bank.bankName,
+      url: absoluteUrl(`/bank/${bank.bankSlug}/${state}`),
+      description: `${bank.branchCount} branches and ${bank.atmCount} ATMs in ${stateName}`,
     }))
   );
 
@@ -218,6 +229,46 @@ export default async function StatePage({ params }: Props) {
         </div>
       </section>
 
+      {banksInState.length > 0 && (
+        <section className="border-t border-white/5 px-6 sm:px-10 py-16 sm:py-24 bg-black">
+          <div className="max-w-[1200px] mx-auto">
+            <p className="mb-3 text-[10px] uppercase tracking-[0.2em] text-white/30 font-sans font-medium">
+              Banks in {stateAbbr}
+            </p>
+            <h2 className="mb-10 font-serif text-[clamp(1.5rem,3vw,2.25rem)] font-light leading-[1.1] text-white">
+              Popular Bank Networks in {stateName}
+            </h2>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px bg-white/5">
+              {banksInState.map((bank) => (
+                <Link
+                  key={bank.bankSlug}
+                  href={`/bank/${bank.bankSlug}/${state}`}
+                  className="group bg-black p-6 transition-all duration-300 hover:bg-white/[0.03]"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <h3 className="text-[17px] font-light text-white transition-transform group-hover:translate-x-1">
+                        {bank.bankName}
+                      </h3>
+                      <p className="mt-2 text-[11px] uppercase tracking-widest text-white/30">
+                        {bank.branchCount} branches • {bank.atmCount} ATMs
+                      </p>
+                      <p className="mt-3 text-[13px] text-white/45">
+                        Coverage across {bank.suburbCount} suburbs in {stateAbbr}.
+                      </p>
+                    </div>
+                    <span className="text-white/20 transition-all duration-300 group-hover:text-white/50 group-hover:translate-x-1">
+                      &rarr;
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* SEO content */}
       <section className="border-t border-white/5 px-6 sm:px-10 py-16 sm:py-24 bg-black">
         <div className="max-w-[640px] mx-auto">
@@ -272,7 +323,7 @@ export default async function StatePage({ params }: Props) {
       </section>
 
       <StructuredData
-        data={[collectionSchema, breadcrumbSchema, suburbListSchema, faqSchema].filter(Boolean)}
+        data={[collectionSchema, breadcrumbSchema, suburbListSchema, bankListSchema, faqSchema].filter(Boolean)}
       />
     </div>
   );

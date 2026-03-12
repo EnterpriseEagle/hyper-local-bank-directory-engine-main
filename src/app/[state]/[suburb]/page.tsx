@@ -106,6 +106,37 @@ export default async function SuburbPage({ params }: Props) {
     (b) => b.type === "branch" && b.status === "closed"
   );
   const atms = branches.filter((b) => b.type === "atm" && b.status === "open");
+  const banksInSuburb = Array.from(
+    branches.reduce<
+      Map<
+        string,
+        {
+          bankName: string;
+          bankSlug: string;
+          branchCount: number;
+          atmCount: number;
+        }
+      >
+    >((map, branch) => {
+      const current = map.get(branch.bankSlug) ?? {
+        bankName: branch.bankName,
+        bankSlug: branch.bankSlug,
+        branchCount: 0,
+        atmCount: 0,
+      };
+
+      if (branch.type === "branch" && branch.status === "open") {
+        current.branchCount += 1;
+      }
+
+      if (branch.type === "atm" && branch.status === "open") {
+        current.atmCount += 1;
+      }
+
+      map.set(branch.bankSlug, current);
+      return map;
+    }, new Map()).values()
+  ).sort((a, b) => b.branchCount - a.branchCount || b.atmCount - a.atmCount || a.bankName.localeCompare(b.bankName));
   const faq = [
     {
       q: `How many bank branches are open in ${displayName}?`,
@@ -187,6 +218,14 @@ export default async function SuburbPage({ params }: Props) {
       name: branch.name,
       url: absoluteUrl(`/bank/${branch.bankSlug}/${state}/${suburb.slug}`),
       description: branch.address,
+    }))
+  );
+  const bankListSchema = buildItemListSchema(
+    `Banks operating in ${displayName}`,
+    banksInSuburb.map((bank) => ({
+      name: bank.bankName,
+      url: absoluteUrl(`/bank/${bank.bankSlug}/${state}/${suburb.slug}`),
+      description: `${bank.branchCount} branches and ${bank.atmCount} ATMs in ${displayName}`,
     }))
   );
 
@@ -342,6 +381,43 @@ export default async function SuburbPage({ params }: Props) {
                     />
                   )}
                 </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {banksInSuburb.length > 0 && (
+        <section className="border-b border-white/5 px-6 sm:px-10 py-16 sm:py-20 bg-black">
+          <div className="max-w-[1000px] mx-auto">
+            <p className="mb-3 text-[10px] uppercase tracking-[0.2em] text-white/30 font-medium">
+              Browse by Bank
+            </p>
+            <h2 className="mb-8 font-serif text-[clamp(1.5rem,3vw,2.25rem)] font-light leading-[1.1] text-white">
+              Banks Operating in {displayName}
+            </h2>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px bg-white/5">
+              {banksInSuburb.map((bank) => (
+                <Link
+                  key={bank.bankSlug}
+                  href={`/bank/${bank.bankSlug}/${state}/${suburb.slug}`}
+                  className="group bg-black p-6 transition-all duration-300 hover:bg-white/[0.03]"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <h3 className="text-[17px] font-light text-white transition-transform group-hover:translate-x-1">
+                        {bank.bankName}
+                      </h3>
+                      <p className="mt-2 text-[11px] uppercase tracking-widest text-white/30">
+                        {bank.branchCount} branches • {bank.atmCount} ATMs
+                      </p>
+                    </div>
+                    <span className="text-white/20 transition-all duration-300 group-hover:text-white/50 group-hover:translate-x-1">
+                      &rarr;
+                    </span>
+                  </div>
+                </Link>
               ))}
             </div>
           </div>
@@ -595,6 +671,7 @@ export default async function SuburbPage({ params }: Props) {
           suburbSchema,
           breadcrumbSchema,
           branchListSchema,
+          bankListSchema,
           faqSchema,
           ...jsonLdItems,
         ].filter(Boolean)}

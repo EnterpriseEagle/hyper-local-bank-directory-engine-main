@@ -7,6 +7,7 @@ import {
   getBankBySlug, 
   getBankBranchStats, 
   getBankStatesPresence,
+  getTopSuburbsForBank,
   STATE_NAMES 
 } from "@/lib/data";
 import { generateBankSEOContent } from "@/lib/seo-content";
@@ -50,9 +51,10 @@ export default async function BankPage({ params }: PageProps) {
   const bank = await getBankBySlug(bankSlug);
   if (!bank) notFound();
 
-  const [stats, states] = await Promise.all([
+  const [stats, states, topSuburbs] = await Promise.all([
     getBankBranchStats(bank.id),
     getBankStatesPresence(bank.id),
+    getTopSuburbsForBank(bank.id, 12),
   ]);
 
   const seo = generateBankSEOContent(bank.name, "Australia", "national", stats);
@@ -79,6 +81,14 @@ export default async function BankPage({ params }: PageProps) {
       name: STATE_NAMES[state.stateSlug] || state.state,
       url: absoluteUrl(`/bank/${bank.slug}/${state.stateSlug}`),
       description: `${state.branchCount} branches and ${state.atmCount} ATMs`,
+    }))
+  );
+  const suburbListSchema = buildItemListSchema(
+    `${bank.name} top suburbs in Australia`,
+    topSuburbs.map((suburb) => ({
+      name: `${suburb.suburbName} ${suburb.postcode}`,
+      url: absoluteUrl(`/bank/${bank.slug}/${suburb.stateSlug}/${suburb.suburbSlug}`),
+      description: `${suburb.branchCount} branches and ${suburb.atmCount} ATMs`,
     }))
   );
   const bankSchema = {
@@ -187,6 +197,41 @@ export default async function BankPage({ params }: PageProps) {
         </div>
       </section>
 
+      {topSuburbs.length > 0 && (
+        <section className="px-6 py-16 sm:py-24 border-b border-white/5">
+          <div className="mx-auto max-w-[1000px]">
+            <h2 className="mb-12 font-serif text-[clamp(1.75rem,4vw,3rem)] font-light text-white">
+              Popular {bank.name} Suburbs
+            </h2>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px bg-white/10">
+              {topSuburbs.map((suburb) => (
+                <Link
+                  key={`${suburb.stateSlug}-${suburb.suburbSlug}`}
+                  href={`/bank/${bankSlug}/${suburb.stateSlug}/${suburb.suburbSlug}`}
+                  className="group bg-black p-6 transition-all duration-500 hover:bg-white/[0.03]"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <h3 className="font-serif text-[18px] font-light text-white transition-all duration-300 group-hover:translate-x-1">
+                        {suburb.suburbName}
+                      </h3>
+                      <p className="mt-2 text-[11px] uppercase tracking-widest text-white/30">
+                        {suburb.postcode}, {suburb.state}
+                      </p>
+                      <p className="mt-3 text-[13px] text-white/45">
+                        {suburb.branchCount} branches • {suburb.atmCount} ATMs
+                      </p>
+                    </div>
+                    <span className="text-white/20 group-hover:text-white/50 transition-colors">&rarr;</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* FAQ / Content */}
       <section className="px-6 py-16 sm:py-24 bg-black">
         <div className="mx-auto max-w-[640px]">
@@ -205,7 +250,7 @@ export default async function BankPage({ params }: PageProps) {
       </section>
 
       <StructuredData
-        data={[collectionSchema, breadcrumbSchema, stateListSchema, bankSchema, faqSchema].filter(Boolean)}
+        data={[collectionSchema, breadcrumbSchema, stateListSchema, suburbListSchema, bankSchema, faqSchema].filter(Boolean)}
       />
     </div>
   );

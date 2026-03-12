@@ -403,6 +403,42 @@ export async function getOutageHotspots(limit = 8) {
     return results;
 }
 
+export async function getTopSuburbsByBranchCount(limit = 12) {
+  return db
+    .select({
+      name: suburbs.name,
+      slug: suburbs.slug,
+      postcode: suburbs.postcode,
+      state: suburbs.state,
+      stateSlug: suburbs.stateSlug,
+      branchCount: suburbs.branchCount,
+      atmCount: suburbs.atmCount,
+      closedBranches: suburbs.closedBranches,
+    })
+    .from(suburbs)
+    .where(sql`${suburbs.branchCount} > 0`)
+    .orderBy(desc(suburbs.branchCount), desc(suburbs.atmCount), asc(suburbs.name))
+    .limit(limit);
+}
+
+export async function getTopSuburbsByAtmCount(limit = 12) {
+  return db
+    .select({
+      name: suburbs.name,
+      slug: suburbs.slug,
+      postcode: suburbs.postcode,
+      state: suburbs.state,
+      stateSlug: suburbs.stateSlug,
+      branchCount: suburbs.branchCount,
+      atmCount: suburbs.atmCount,
+      closedBranches: suburbs.closedBranches,
+    })
+    .from(suburbs)
+    .where(sql`${suburbs.atmCount} > 0`)
+    .orderBy(desc(suburbs.atmCount), desc(suburbs.branchCount), asc(suburbs.name))
+    .limit(limit);
+}
+
 // ===== BANK PAGE DATA =====
 
 export async function getAllBanks() {
@@ -450,6 +486,33 @@ export async function getBankStatesPresence(bankId: number) {
     .orderBy(asc(suburbs.state));
 }
 
+export async function getBanksInState(stateSlug: string, limit = 12) {
+  return db
+    .select({
+      bankName: banks.name,
+      bankSlug: banks.slug,
+      bankType: banks.type,
+      branchCount: sql<number>`count(DISTINCT CASE WHEN ${branches.type} = 'branch' AND ${branches.status} = 'open' THEN ${branches.id} END)`,
+      atmCount: sql<number>`count(DISTINCT CASE WHEN ${branches.type} = 'atm' AND ${branches.status} = 'open' THEN ${branches.id} END)`,
+      suburbCount: sql<number>`count(DISTINCT ${suburbs.id})`,
+    })
+    .from(branches)
+    .innerJoin(banks, eq(branches.bankId, banks.id))
+    .innerJoin(suburbs, eq(branches.suburbId, suburbs.id))
+    .where(eq(suburbs.stateSlug, stateSlug))
+    .groupBy(banks.id, banks.name, banks.slug, banks.type)
+    .orderBy(
+      desc(
+        sql`count(DISTINCT CASE WHEN ${branches.type} = 'branch' AND ${branches.status} = 'open' THEN ${branches.id} END)`
+      ),
+      desc(
+        sql`count(DISTINCT CASE WHEN ${branches.type} = 'atm' AND ${branches.status} = 'open' THEN ${branches.id} END)`
+      ),
+      asc(banks.name)
+    )
+    .limit(limit);
+}
+
 export async function getBankSuburbsInState(bankId: number, stateSlug: string) {
   return db
     .select({
@@ -466,6 +529,34 @@ export async function getBankSuburbsInState(bankId: number, stateSlug: string) {
     .where(and(eq(branches.bankId, bankId), eq(suburbs.stateSlug, stateSlug)))
     .groupBy(suburbs.name, suburbs.slug, suburbs.postcode, suburbs.stateSlug)
     .orderBy(asc(suburbs.name));
+}
+
+export async function getTopSuburbsForBank(bankId: number, limit = 12) {
+  return db
+    .select({
+      suburbName: suburbs.name,
+      suburbSlug: suburbs.slug,
+      postcode: suburbs.postcode,
+      state: suburbs.state,
+      stateSlug: suburbs.stateSlug,
+      branchCount: sql<number>`count(DISTINCT CASE WHEN ${branches.type} = 'branch' AND ${branches.status} = 'open' THEN ${branches.id} END)`,
+      atmCount: sql<number>`count(DISTINCT CASE WHEN ${branches.type} = 'atm' AND ${branches.status} = 'open' THEN ${branches.id} END)`,
+      closedCount: sql<number>`count(DISTINCT CASE WHEN ${branches.status} = 'closed' THEN ${branches.id} END)`,
+    })
+    .from(branches)
+    .innerJoin(suburbs, eq(branches.suburbId, suburbs.id))
+    .where(eq(branches.bankId, bankId))
+    .groupBy(suburbs.name, suburbs.slug, suburbs.postcode, suburbs.state, suburbs.stateSlug)
+    .orderBy(
+      desc(
+        sql`count(DISTINCT CASE WHEN ${branches.type} = 'branch' AND ${branches.status} = 'open' THEN ${branches.id} END)`
+      ),
+      desc(
+        sql`count(DISTINCT CASE WHEN ${branches.type} = 'atm' AND ${branches.status} = 'open' THEN ${branches.id} END)`
+      ),
+      asc(suburbs.name)
+    )
+    .limit(limit);
 }
 
 export async function getBankBranchesInSuburb(bankId: number, suburbSlug: string) {
@@ -518,6 +609,55 @@ export async function getAtmsForSuburb(suburbSlug: string) {
     .innerJoin(suburbs, eq(branches.suburbId, suburbs.id))
     .where(and(eq(suburbs.slug, suburbSlug), eq(branches.type, "atm")))
     .orderBy(asc(banks.name));
+}
+
+export async function getBanksByBranchCoverage(limit = 12) {
+  return db
+    .select({
+      bankName: banks.name,
+      bankSlug: banks.slug,
+      bankType: banks.type,
+      branchCount: sql<number>`count(DISTINCT CASE WHEN ${branches.type} = 'branch' AND ${branches.status} = 'open' THEN ${branches.id} END)`,
+      suburbCount: sql<number>`count(DISTINCT CASE WHEN ${branches.type} = 'branch' AND ${branches.status} = 'open' THEN ${suburbs.id} END)`,
+      atmCount: sql<number>`count(DISTINCT CASE WHEN ${branches.type} = 'atm' AND ${branches.status} = 'open' THEN ${branches.id} END)`,
+    })
+    .from(branches)
+    .innerJoin(banks, eq(branches.bankId, banks.id))
+    .innerJoin(suburbs, eq(branches.suburbId, suburbs.id))
+    .groupBy(banks.id, banks.name, banks.slug, banks.type)
+    .orderBy(
+      desc(
+        sql`count(DISTINCT CASE WHEN ${branches.type} = 'branch' AND ${branches.status} = 'open' THEN ${branches.id} END)`
+      ),
+      desc(
+        sql`count(DISTINCT CASE WHEN ${branches.type} = 'atm' AND ${branches.status} = 'open' THEN ${branches.id} END)`
+      ),
+      asc(banks.name)
+    )
+    .limit(limit);
+}
+
+export async function getBanksByAtmCoverage(limit = 12) {
+  return db
+    .select({
+      bankName: banks.name,
+      bankSlug: banks.slug,
+      bankType: banks.type,
+      atmCount: sql<number>`count(DISTINCT CASE WHEN ${branches.type} = 'atm' AND ${branches.status} = 'open' THEN ${branches.id} END)`,
+      suburbCount: sql<number>`count(DISTINCT CASE WHEN ${branches.type} = 'atm' AND ${branches.status} = 'open' THEN ${suburbs.id} END)`,
+    })
+    .from(branches)
+    .innerJoin(banks, eq(branches.bankId, banks.id))
+    .innerJoin(suburbs, eq(branches.suburbId, suburbs.id))
+    .where(eq(branches.type, "atm"))
+    .groupBy(banks.id, banks.name, banks.slug, banks.type)
+    .orderBy(
+      desc(
+        sql`count(DISTINCT CASE WHEN ${branches.type} = 'atm' AND ${branches.status} = 'open' THEN ${branches.id} END)`
+      ),
+      asc(banks.name)
+    )
+    .limit(limit);
 }
 
 // ===== COMPARISON DATA =====
