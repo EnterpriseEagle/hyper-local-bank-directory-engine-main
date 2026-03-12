@@ -1,8 +1,9 @@
 import type { MetadataRoute } from "next";
-import { SITE_URL } from "@/lib/site-url";
+import { getSiteUrl } from "@/lib/site-url";
 
 export default function robots(): MetadataRoute.Robots {
   const disallow = ["/api/", "/admin/", "/health"];
+  const siteUrl = getSiteUrl();
 
   return {
     rules: [
@@ -27,7 +28,7 @@ export default function robots(): MetadataRoute.Robots {
         disallow,
       },
     ],
-    host: SITE_URL,
-    sitemap: `${SITE_URL}/sitemap.xml`,
+    host: siteUrl,
+    sitemap: `${siteUrl}/sitemap.xml`,
   };
 }

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { SITE_URL } from "./site-url";
+import { getSiteUrl } from "./site-url";
 
 export const SITE_NAME = "BANK NEAR ME";
 export const SITE_LEGAL_NAME = "BANK NEAR ME®";
@@ -75,7 +75,7 @@ interface MetadataOptions {
 
 export function absoluteUrl(path = "/") {
   const pathname = path.startsWith("/") ? path : `/${path}`;
-  return new URL(pathname, SITE_URL).toString();
+  return new URL(pathname, getSiteUrl()).toString();
 }
 
 export function buildKeywords(keywords: string[] = []) {
@@ -228,12 +228,14 @@ export function buildCollectionPageSchema(input: {
 }
 
 export function buildOrganizationSchema(): JsonLd {
+  const siteUrl = getSiteUrl();
+
   return {
     "@context": "https://schema.org",
     "@type": "Organization",
     "@id": absoluteUrl("/#organization"),
     name: SITE_LEGAL_NAME,
-    url: SITE_URL,
+    url: siteUrl,
     description: SITE_DESCRIPTION,
     logo: absoluteUrl("/favicon.ico"),
     areaServed: {
@@ -251,13 +253,15 @@ export function buildOrganizationSchema(): JsonLd {
 }
 
 export function buildWebSiteSchema(): JsonLd {
+  const siteUrl = getSiteUrl();
+
   return {
     "@context": "https://schema.org",
     "@type": "WebSite",
     "@id": absoluteUrl("/#website"),
     name: SITE_LEGAL_NAME,
     alternateName: SITE_NAME,
-    url: SITE_URL,
+    url: siteUrl,
     description: SITE_DESCRIPTION,
     inLanguage: "en-AU",
     publisher: {
@@ -267,7 +271,7 @@ export function buildWebSiteSchema(): JsonLd {
       "@type": "SearchAction",
       target: {
         "@type": "EntryPoint",
-        urlTemplate: `${SITE_URL}/search?q={search_term_string}`,
+        urlTemplate: `${siteUrl}/search?q={search_term_string}`,
       },
       "query-input": "required name=search_term_string",
     },

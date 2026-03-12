@@ -6,7 +6,7 @@ import Script from "next/script";
 import Link from "next/link";
 import { SearchBar } from "@/components/search-bar";
 import { MobileNav } from "@/components/mobile-nav";
-import { SITE_URL } from "@/lib/site-url";
+import { getSiteUrl } from "@/lib/site-url";
 import {
   DEFAULT_KEYWORDS,
   SITE_DESCRIPTION,
@@ -17,6 +17,8 @@ import {
   buildWebSiteSchema,
 } from "@/lib/seo";
 import { StructuredData } from "@/components/structured-data";
+
+const SITE_URL = getSiteUrl();
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
