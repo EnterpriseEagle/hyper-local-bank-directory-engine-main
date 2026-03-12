@@ -35,6 +35,12 @@ export function MobileNav() {
         >
           Closures
         </Link>
+        <Link
+          href="/insights"
+          className="text-[10px] uppercase font-medium tracking-[0.25em] text-white/40 transition-colors duration-300 hover:text-white underline-reveal"
+        >
+          Insights
+        </Link>
       </div>
 
       {/* Hamburger button */}
@@ -97,6 +103,13 @@ export function MobileNav() {
             className="block py-3 text-[11px] uppercase font-medium tracking-[0.2em] text-white/50 hover:text-white transition-colors"
           >
             Closures
+          </Link>
+          <Link
+            href="/insights"
+            onClick={() => setOpen(false)}
+            className="block py-3 text-[11px] uppercase font-medium tracking-[0.2em] text-white/50 hover:text-white transition-colors"
+          >
+            Insights
           </Link>
         </div>
         <div className="px-6 pb-4">

@@ -256,6 +256,42 @@ export function buildWebPageSchema(input: {
   };
 }
 
+export function buildArticleSchema(input: {
+  headline: string;
+  description: string;
+  url: string;
+  datePublished: string;
+  dateModified?: string;
+  articleSection?: string;
+  keywords?: string[];
+  imagePath?: string;
+  about?: JsonLd;
+}): JsonLd {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: input.headline,
+    description: input.description,
+    url: input.url,
+    mainEntityOfPage: input.url,
+    inLanguage: "en-AU",
+    datePublished: input.datePublished,
+    dateModified: input.dateModified ?? input.datePublished,
+    image: absoluteUrl(input.imagePath ?? DEFAULT_OG_IMAGE_PATH),
+    author: {
+      "@type": "Organization",
+      name: SITE_LEGAL_NAME,
+      url: absoluteUrl("/"),
+    },
+    publisher: {
+      "@id": absoluteUrl("/#organization"),
+    },
+    ...(input.articleSection ? { articleSection: input.articleSection } : {}),
+    ...(input.keywords?.length ? { keywords: input.keywords } : {}),
+    ...(input.about ? { about: input.about } : {}),
+  };
+}
+
 export function buildOrganizationSchema(): JsonLd {
   const siteUrl = getSiteUrl();
 

@@ -1,5 +1,5 @@
 const DEFAULT_PRODUCTION_SITE_URL =
-  "https://hyper-local-bank-directory-engine-main-production.up.railway.app";
+  "https://banknearme.com.au";
 const DEFAULT_DEVELOPMENT_SITE_URL = "http://localhost:3000";
 
 function normalizeSiteUrl(value: string) {

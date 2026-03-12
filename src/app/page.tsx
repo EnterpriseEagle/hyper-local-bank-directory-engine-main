@@ -2,6 +2,7 @@ import Link from "next/link";
 import { HeroSearch } from "@/components/hero-search";
 import { SwitchOfferCard } from "@/components/switch-banner";
 import { StructuredData } from "@/components/structured-data";
+import { getAllInsights } from "@/lib/insights";
 import {
   getStats,
   getStateList,
@@ -74,6 +75,7 @@ function timeAgo(dateStr: string) {
 }
 
 export default async function HomePage() {
+  const featuredInsights = getAllInsights().slice(0, 3);
   const [stats, states, closures, recentReports, outageStats, hotspots] =
     await Promise.all([
       getStats(),
@@ -203,6 +205,7 @@ export default async function HomePage() {
               {[
                 ["Bank Near Me", "/bank-near-me"],
                 ["ATM Near Me", "/atm-near-me"],
+                ["Banking Insights", "/insights"],
                 ["CBA Near Me", "/cba-near-me"],
                 ["Browse All Banks", "/bank"],
                 ["Latest Closures", "/closures"],
@@ -657,6 +660,47 @@ export default async function HomePage() {
                   {item.a}
                 </p>
               </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="border-t border-white/5 px-6 py-16 sm:px-10 sm:py-20 bg-black">
+        <div className="mx-auto max-w-[1200px]">
+          <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="mb-3 text-[10px] uppercase tracking-[0.2em] text-white/30 font-medium">
+                Insights
+              </p>
+              <h2 className="font-serif text-[clamp(1.75rem,4vw,3rem)] font-light leading-[1.1] text-white">
+                Data-backed guides that support the main search intent
+              </h2>
+            </div>
+            <Link
+              href="/insights"
+              className="text-[11px] uppercase tracking-[0.2em] text-white/40 transition-colors hover:text-white"
+            >
+              View All Insights &rarr;
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 gap-px bg-white/5 lg:grid-cols-3">
+            {featuredInsights.map((insight) => (
+              <Link
+                key={insight.slug}
+                href={`/insights/${insight.slug}`}
+                className="group bg-black p-6 transition-all duration-300 hover:bg-white/[0.03]"
+              >
+                <p className="text-[10px] uppercase tracking-[0.2em] text-white/30">
+                  {insight.category}
+                </p>
+                <h3 className="mt-4 font-serif text-[1.45rem] font-light leading-[1.15] text-white transition-transform group-hover:translate-x-1">
+                  {insight.title}
+                </h3>
+                <p className="mt-4 text-[14px] leading-relaxed text-white/45">
+                  {insight.excerpt}
+                </p>
+              </Link>
             ))}
           </div>
         </div>

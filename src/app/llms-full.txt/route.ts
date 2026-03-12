@@ -34,6 +34,7 @@ export async function GET() {
     `- ATM near me hub: ${absoluteUrl("/atm-near-me")}`,
     `- CBA near me hub: ${absoluteUrl("/cba-near-me")}`,
     `- Banks directory: ${absoluteUrl("/bank")}`,
+    `- Insights hub: ${absoluteUrl("/insights")}`,
     `- Closures tracker: ${absoluteUrl("/closures")}`,
     `- RSS feed: ${absoluteUrl("/feed.xml")}`,
     `- llms.txt summary: ${absoluteUrl("/llms.txt")}`,
@@ -46,6 +47,7 @@ export async function GET() {
     `- Bank sitemap: ${absoluteUrl(SITEMAP_PATHS.banks)}`,
     `- Bank-state sitemap: ${absoluteUrl(SITEMAP_PATHS.bankStates)}`,
     `- Bank-suburb sitemap: ${absoluteUrl(SITEMAP_PATHS.bankSuburbs)}`,
+    `- Insights sitemap: ${absoluteUrl(SITEMAP_PATHS.insights)}`,
     "",
     "## States And Territories",
     ...states.flatMap((state) => [

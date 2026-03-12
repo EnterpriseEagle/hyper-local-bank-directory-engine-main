@@ -6,6 +6,7 @@ import {
   getAllSuburbSlugs,
   getStateList,
 } from "./data";
+import { getAllInsights } from "./insights";
 import { getSiteUrl } from "./site-url";
 
 type SitemapEntry = MetadataRoute.Sitemap[number];
@@ -18,6 +19,7 @@ export const SITEMAP_PATHS = {
   banks: "/sitemaps/banks/sitemap.xml",
   bankStates: "/sitemaps/bank-states/sitemap.xml",
   bankSuburbs: "/sitemaps/bank-suburbs/sitemap.xml",
+  insights: "/sitemaps/insights/sitemap.xml",
 } as const;
 
 function buildEntry(
@@ -47,6 +49,7 @@ export function getCoreSitemap(lastModified = new Date()): MetadataRoute.Sitemap
     buildEntry("/atm-near-me", "weekly", 0.9, lastModified),
     buildEntry("/cba-near-me", "weekly", 0.9, lastModified),
     buildEntry("/bank", "weekly", 0.85, lastModified),
+    buildEntry("/insights", "weekly", 0.7, lastModified),
     buildEntry("/closures", "daily", 0.8, lastModified),
     buildEntry("/search", "monthly", 0.3, lastModified),
   ];
@@ -113,5 +116,13 @@ export async function getBankSuburbSitemap(
       0.5,
       lastModified
     )
+  );
+}
+
+export function getInsightSitemap(lastModified = new Date()): MetadataRoute.Sitemap {
+  const insights = getAllInsights();
+
+  return insights.map((insight) =>
+    buildEntry(`/insights/${insight.slug}`, "weekly", 0.65, lastModified)
   );
 }
