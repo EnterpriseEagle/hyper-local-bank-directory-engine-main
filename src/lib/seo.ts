@@ -237,7 +237,7 @@ export function buildOrganizationSchema(): JsonLd {
     name: SITE_LEGAL_NAME,
     url: siteUrl,
     description: SITE_DESCRIPTION,
-    logo: absoluteUrl("/favicon.ico"),
+    logo: absoluteUrl("/icon.svg"),
     areaServed: {
       "@type": "Country",
       name: "Australia",

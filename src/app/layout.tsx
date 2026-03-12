@@ -6,6 +6,7 @@ import Script from "next/script";
 import Link from "next/link";
 import { SearchBar } from "@/components/search-bar";
 import { MobileNav } from "@/components/mobile-nav";
+import { SiteLogo } from "@/components/site-logo";
 import { getSiteUrl } from "@/lib/site-url";
 import {
   DEFAULT_KEYWORDS,
@@ -39,7 +40,10 @@ export const metadata: Metadata = {
   },
   manifest: absoluteUrl("/manifest.webmanifest"),
   icons: {
-    icon: [{ url: "/favicon.ico", sizes: "any" }],
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/favicon.ico", sizes: "any" },
+    ],
     shortcut: [{ url: "/favicon.ico" }],
     apple: [{ url: "/favicon.ico" }],
   },
@@ -85,6 +89,7 @@ export const metadata: Metadata = {
   },
   other: {
     "commission-factory-verification": "632a548d09944472a61b9ee7f3157f9d",
+    "impact-site-verification": "4cbfccd1-7a9b-4c0a-858d-5ed45ee65140",
     "geo.region": "AU",
     "geo.placename": "Australia",
     "geo.position": "-25.2744;133.7751",
@@ -151,10 +156,8 @@ export default function RootLayout({
 
           <div className="relative mx-auto flex max-w-[1400px] items-center justify-between px-6 py-5 sm:px-10">
             <Link href="/" className="group transition-opacity hover:opacity-70 flex items-center gap-2">
-                <span className="font-sans text-[13px] font-bold uppercase tracking-[0.15em] text-white">
-                  BANK NEAR ME<sup className="text-[7px] relative -top-1">®</sup>
-                </span>
-              </Link>
+              <SiteLogo />
+            </Link>
 
             <div className="hidden md:block flex-1 max-w-xs mx-8">
               <SearchBar />
@@ -172,7 +175,9 @@ export default function RootLayout({
           <div className="mx-auto max-w-[1200px]">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8 mb-10">
               <div>
-                <span className="font-sans text-[13px] font-bold uppercase tracking-[0.15em] text-white">BANK NEAR ME<sup className="text-[7px]">®</sup></span>
+                <Link href="/" className="inline-flex transition-opacity duration-300 hover:opacity-80">
+                  <SiteLogo markClassName="h-11 w-11" />
+                </Link>
                 <p className="mt-3 text-[13px] leading-relaxed text-white/30">
                   Australia&apos;s comprehensive database of bank branches, ATMs, and banking services.
                 </p>
