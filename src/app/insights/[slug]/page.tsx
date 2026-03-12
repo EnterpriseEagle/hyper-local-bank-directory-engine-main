@@ -42,6 +42,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     title: insight.title,
     description: insight.description,
     path: `/insights/${insight.slug}`,
+    imagePath: `/insights/${insight.slug}/opengraph-image`,
     keywords: insight.keywords,
     type: "article",
     category: insight.category,

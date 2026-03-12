@@ -26,6 +26,7 @@ export const metadata = buildMetadata({
   description:
     "Find a bank near you anywhere in Australia. Search by suburb or postcode, browse the biggest branch networks, and compare nearby ATMs, closures, and local status signals.",
   path: "/bank-near-me",
+  imagePath: "/bank-near-me/opengraph-image",
   keywords: [
     "bank near me Australia",
     "find bank near me",

@@ -17,6 +17,7 @@ export const metadata: Metadata = buildMetadata({
   description:
     "Browse major, regional, digital, and mutual banks in Australia. Find branch locations, ATM coverage, and live local status pages for Commonwealth Bank, Westpac, ANZ, NAB, and more.",
   path: "/bank",
+  imagePath: "/bank/opengraph-image",
   keywords: [
     "banks in Australia",
     "Australian bank directory",

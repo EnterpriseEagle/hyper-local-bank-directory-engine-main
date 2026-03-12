@@ -50,6 +50,7 @@ export const metadata: Metadata = {
   alternates: {
     types: {
       "application/rss+xml": absoluteUrl("/feed.xml"),
+      "application/feed+json": absoluteUrl("/feed.json"),
       "text/plain": absoluteUrl("/llms.txt"),
     },
   },

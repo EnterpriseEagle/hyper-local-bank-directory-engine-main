@@ -25,6 +25,7 @@ export const metadata = buildMetadata({
   description:
     "Find ATMs near you across Australia. Search by suburb or postcode, compare major bank ATM networks, and open suburb pages with ATM counts, outages, and nearby alternatives.",
   path: "/atm-near-me",
+  imagePath: "/atm-near-me/opengraph-image",
   keywords: [
     "ATM near me Australia",
     "fee free ATM near me",

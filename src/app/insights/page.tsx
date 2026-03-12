@@ -19,6 +19,7 @@ export const metadata: Metadata = buildMetadata({
   description:
     "Data-backed banking insights for Australia covering branch closures, ATM access, bank coverage, and how to find a working bank near you.",
   path: "/insights",
+  imagePath: "/insights/opengraph-image",
   keywords: [
     "banking insights Australia",
     "bank branch closures Australia guide",

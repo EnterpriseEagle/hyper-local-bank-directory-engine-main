@@ -35,6 +35,7 @@ export async function generateMetadata(): Promise<Metadata> {
     title: `CBA Near Me Australia | ${stats.openBranches} Commonwealth Bank Branches & ${stats.atms} ATMs`,
     description: `Find a Commonwealth Bank near you anywhere in Australia. Explore ${stats.openBranches} open branches, ${stats.atms} ATMs, suburb coverage, and recent closures before you head out.`,
     path: "/cba-near-me",
+    imagePath: "/cba-near-me/opengraph-image",
     keywords: [
       "CBA near me",
       "Commonwealth Bank near me",

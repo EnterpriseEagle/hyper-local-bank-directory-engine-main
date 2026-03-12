@@ -6,13 +6,14 @@ import {
   getAllSuburbSlugs,
   getStateList,
 } from "./data";
-import { getAllInsights } from "./insights";
+import { getAllInsights } from "./insight-definitions";
 import { getSiteUrl } from "./site-url";
 
 type SitemapEntry = MetadataRoute.Sitemap[number];
 
 export const SITEMAP_PATHS = {
-  core: "/sitemap.xml",
+  index: "/sitemap.xml",
+  core: "/sitemaps/core/sitemap.xml",
   states: "/sitemaps/states/sitemap.xml",
   suburbs: "/sitemaps/suburbs/sitemap.xml",
   atms: "/sitemaps/atms/sitemap.xml",
@@ -38,8 +39,23 @@ function buildEntry(
   };
 }
 
-export function getSitemapUrls() {
-  return Object.values(SITEMAP_PATHS).map((path) => buildEntry(path, "daily", 0.5).url);
+export function getSitemapIndexUrl() {
+  return buildEntry(SITEMAP_PATHS.index, "daily", 0.5).url;
+}
+
+export function getSegmentSitemapUrls() {
+  return Object.entries(SITEMAP_PATHS)
+    .filter(([key]) => key !== "index")
+    .map(([, path]) => buildEntry(path, "daily", 0.5).url);
+}
+
+export function getSitemapIndexEntries(lastModified = new Date()) {
+  return Object.entries(SITEMAP_PATHS)
+    .filter(([key]) => key !== "index")
+    .map(([, path]) => ({
+      url: buildEntry(path, "daily", 0.5, lastModified).url,
+      lastModified,
+    }));
 }
 
 export function getCoreSitemap(lastModified = new Date()): MetadataRoute.Sitemap {
@@ -123,6 +139,11 @@ export function getInsightSitemap(lastModified = new Date()): MetadataRoute.Site
   const insights = getAllInsights();
 
   return insights.map((insight) =>
-    buildEntry(`/insights/${insight.slug}`, "weekly", 0.65, lastModified)
+    buildEntry(
+      `/insights/${insight.slug}`,
+      "weekly",
+      0.65,
+      new Date(insight.modifiedTime || lastModified)
+    )
   );
 }

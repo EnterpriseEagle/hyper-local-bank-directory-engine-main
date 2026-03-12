@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 import { getSiteUrl } from "@/lib/site-url";
-import { getSitemapUrls } from "@/lib/sitemap";
+import { getSitemapIndexUrl } from "@/lib/sitemap";
 
 export const revalidate = 3600;
 
@@ -32,6 +32,6 @@ export default function robots(): MetadataRoute.Robots {
       },
     ],
     host: siteUrl,
-    sitemap: getSitemapUrls(),
+    sitemap: getSitemapIndexUrl(),
   };
 }

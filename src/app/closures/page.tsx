@@ -26,6 +26,7 @@ export const metadata: Metadata = buildMetadata({
   description:
     "Track the latest bank branch closures across Australia. See which suburbs are losing branches, compare local impact, and find the nearest open banking alternatives.",
   path: "/closures",
+  imagePath: "/closures/opengraph-image",
   keywords: [
     "bank branch closures Australia",
     "Australian bank closures tracker",
