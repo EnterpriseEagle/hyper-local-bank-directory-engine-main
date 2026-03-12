@@ -6,6 +6,14 @@ export const affiliateFeaturesEnabled = isEnabled(
   process.env.NEXT_PUBLIC_ENABLE_AFFILIATE_FEATURES
 );
 
+export const affiliateOpsAutoContactEnabled = isEnabled(
+  process.env.AFFILIATE_OPS_AUTO_CONTACT
+);
+
+export const affiliateOpsAutoPauseEnabled = isEnabled(
+  process.env.AFFILIATE_OPS_AUTO_PAUSE
+);
+
 export const statusReportsEnabled = isEnabled(
   process.env.NEXT_PUBLIC_ENABLE_STATUS_REPORTS
 );

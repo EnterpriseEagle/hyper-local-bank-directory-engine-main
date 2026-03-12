@@ -5,8 +5,13 @@ import {
   savePortfolioWeeklyRollups,
   saveWeeklyDigest,
 } from "@/lib/revenue";
+import { runPayoutAgent } from "@/lib/payout-agent";
 import { sendPortfolioWeeklyEmail } from "@/lib/email";
-import { affiliateFeaturesEnabled } from "@/lib/feature-flags";
+import {
+  affiliateFeaturesEnabled,
+  affiliateOpsAutoContactEnabled,
+  affiliateOpsAutoPauseEnabled,
+} from "@/lib/feature-flags";
 
 /**
  * GET /api/weekly-report
@@ -55,6 +60,10 @@ export async function GET(request: NextRequest) {
     await savePortfolioWeeklyRollups(portfolioReport, {
       emailSentAt: emailSent ? new Date().toISOString() : null,
     });
+    const payoutOps = await runPayoutAgent({
+      autoContact: affiliateOpsAutoContactEnabled,
+      autoPause: affiliateOpsAutoPauseEnabled,
+    });
 
     return NextResponse.json({
       success: true,
@@ -68,6 +77,8 @@ export async function GET(request: NextRequest) {
         confirmedRevenue: `$${portfolioReport.confirmedRevenue.toFixed(2)}`,
         topSite: portfolioReport.sites[0]?.displayName ?? "none",
         topOffer: portfolioReport.topOffers[0]?.label ?? legacyReport.clicksByOffer[0]?.brand ?? "none",
+        payoutIssues: payoutOps.cases.length,
+        payoutOutstandingAmount: `$${payoutOps.totalOutstandingAmount.toFixed(2)}`,
       },
     });
   } catch (err) {

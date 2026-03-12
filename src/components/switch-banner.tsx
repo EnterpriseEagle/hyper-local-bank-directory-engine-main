@@ -1,4 +1,4 @@
-import { getActiveOffer } from "@/lib/affiliate-offers";
+import { getManagedActiveOffer } from "@/lib/affiliate-runtime";
 import { AffiliateLink } from "@/components/affiliate-link";
 import { affiliateFeaturesEnabled } from "@/lib/feature-flags";
 
@@ -6,12 +6,12 @@ import { affiliateFeaturesEnabled } from "@/lib/feature-flags";
  * Full-width "deny" card for the homepage.
  * Pulls the highest-priority active affiliate offer.
  */
-export function SwitchOfferCard({ closedBranches }: { closedBranches: number }) {
+export async function SwitchOfferCard({ closedBranches }: { closedBranches: number }) {
   if (!affiliateFeaturesEnabled) {
     return null;
   }
 
-  const offer = getActiveOffer();
+  const offer = await getManagedActiveOffer("bank_near_me");
 
       return (
         <section className="relative border-b border-white/5 px-6 sm:px-10 py-10 sm:py-14 bg-black overflow-hidden">
@@ -98,12 +98,12 @@ export function SwitchOfferCard({ closedBranches }: { closedBranches: number }) 
  * Sticky bottom bar for suburb pages.
  * Contextual with the suburb name.
  */
-export function SwitchStickyBar({ suburbName, suburbSlug, stateSlug }: { suburbName: string; suburbSlug?: string; stateSlug?: string }) {
+export async function SwitchStickyBar({ suburbName, suburbSlug, stateSlug }: { suburbName: string; suburbSlug?: string; stateSlug?: string }) {
   if (!affiliateFeaturesEnabled) {
     return null;
   }
 
-  const offer = getActiveOffer();
+  const offer = await getManagedActiveOffer("bank_near_me");
 
   // Build contextual CTA text based on offer
   const isING = offer.id === "ing-125";

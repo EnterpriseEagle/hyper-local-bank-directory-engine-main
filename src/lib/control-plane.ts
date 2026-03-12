@@ -4,6 +4,7 @@ export const CONTROL_PLANE_SITE_KEYS = [
   "bank_near_me",
   "atm_near_me",
   "cba_near_me",
+  "help_with_home_loan",
   "bulk_bill_near_me",
 ] as const;
 
@@ -123,6 +124,15 @@ export const PORTFOLIO_DOMAIN_SEEDS: PortfolioDomainSeed[] = [
     vertical: "finance",
     status: "planned",
     notes: "Reserved for Commonwealth Bank exact-match capture.",
+  },
+  {
+    siteKey: "help_with_home_loan",
+    displayName: "Help With Home Loan",
+    primaryDomain: "helpwithhomeloan.com.au",
+    domainAliases: ["www.helpwithhomeloan.com.au", "helpwithhomeloan.com"],
+    vertical: "finance",
+    status: "planned",
+    notes: "Mortgage and refinancing lead-gen property for higher-value finance intent.",
   },
   {
     siteKey: "bulk_bill_near_me",
@@ -302,6 +312,10 @@ export function inferSiteKeyFromPath(
 
   if (pathname.startsWith("/bulk-bill-near-me")) {
     return "bulk_bill_near_me";
+  }
+
+  if (pathname.startsWith("/help-with-home-loan")) {
+    return "help_with_home_loan";
   }
 
   return resolveSiteKeyFromHost(host) ?? "bank_near_me";

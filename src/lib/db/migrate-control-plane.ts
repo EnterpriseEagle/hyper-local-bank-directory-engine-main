@@ -309,6 +309,87 @@ async function migrate() {
   `);
 
   await client.execute(`
+    CREATE TABLE IF NOT EXISTS payout_receipts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      offer_key TEXT NOT NULL,
+      site_key TEXT,
+      source TEXT,
+      amount REAL NOT NULL,
+      currency TEXT NOT NULL DEFAULT 'AUD',
+      period_start TEXT,
+      period_end TEXT,
+      external_ref TEXT,
+      notes TEXT,
+      received_at TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    )
+  `);
+
+  await client.execute(`
+    CREATE INDEX IF NOT EXISTS idx_payout_receipts_offer_key
+    ON payout_receipts(offer_key)
+  `);
+  await client.execute(`
+    CREATE INDEX IF NOT EXISTS idx_payout_receipts_site_key
+    ON payout_receipts(site_key)
+  `);
+  await client.execute(`
+    CREATE INDEX IF NOT EXISTS idx_payout_receipts_received_at
+    ON payout_receipts(received_at)
+  `);
+  await client.execute(`
+    CREATE INDEX IF NOT EXISTS idx_payout_receipts_external_ref
+    ON payout_receipts(external_ref)
+  `);
+
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS payout_cases (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      case_key TEXT NOT NULL,
+      offer_key TEXT NOT NULL,
+      site_key TEXT,
+      status TEXT NOT NULL DEFAULT 'monitoring',
+      severity TEXT NOT NULL DEFAULT 'info',
+      outstanding_amount REAL NOT NULL DEFAULT 0,
+      currency TEXT NOT NULL DEFAULT 'AUD',
+      due_conversions INTEGER NOT NULL DEFAULT 0,
+      oldest_occurred_at TEXT,
+      due_at TEXT,
+      last_escalated_at TEXT,
+      email_stage TEXT,
+      partner_email TEXT,
+      email_subject TEXT,
+      email_body TEXT,
+      recommended_action TEXT,
+      metadata_json TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      resolved_at TEXT
+    )
+  `);
+
+  await client.execute(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_payout_cases_case_key
+    ON payout_cases(case_key)
+  `);
+  await client.execute(`
+    CREATE INDEX IF NOT EXISTS idx_payout_cases_offer_key
+    ON payout_cases(offer_key)
+  `);
+  await client.execute(`
+    CREATE INDEX IF NOT EXISTS idx_payout_cases_site_key
+    ON payout_cases(site_key)
+  `);
+  await client.execute(`
+    CREATE INDEX IF NOT EXISTS idx_payout_cases_status
+    ON payout_cases(status)
+  `);
+  await client.execute(`
+    CREATE INDEX IF NOT EXISTS idx_payout_cases_severity
+    ON payout_cases(severity)
+  `);
+
+  await client.execute(`
     CREATE TABLE IF NOT EXISTS policy_events (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       site_key TEXT NOT NULL,

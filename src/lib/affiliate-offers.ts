@@ -29,6 +29,16 @@ export interface AffiliateOffer {
     buttonText: string;
     glowColor: string; // CSS color for radial glow
   };
+  /** Payout control settings for agentic ops */
+  ops: {
+    network: string;
+    contactEmail: string | null;
+    paymentTermsDays: number;
+    gracePeriodDays: number;
+    pauseTrafficAfterDays: number;
+    autoPauseOnDelinquency: boolean;
+    fallbackOfferId: string | null;
+  };
 }
 
 export const AFFILIATE_OFFERS: AffiliateOffer[] = [
@@ -56,6 +66,15 @@ export const AFFILIATE_OFFERS: AffiliateOffer[] = [
       buttonText: "text-black",
       glowColor: "rgba(249, 115, 22, 0.5)",
     },
+    ops: {
+      network: "direct",
+      contactEmail: null,
+      paymentTermsDays: 45,
+      gracePeriodDays: 7,
+      pauseTrafficAfterDays: 14,
+      autoPauseOnDelinquency: true,
+      fallbackOfferId: "ubank-30",
+    },
   },
 
   // PRIORITY 2 — Ubank ($30, always-on)
@@ -81,6 +100,15 @@ export const AFFILIATE_OFFERS: AffiliateOffer[] = [
       buttonHover: "hover:bg-amber-300",
       buttonText: "text-black",
       glowColor: "rgba(234, 179, 8, 0.5)",
+    },
+    ops: {
+      network: "direct",
+      contactEmail: null,
+      paymentTermsDays: 30,
+      gracePeriodDays: 7,
+      pauseTrafficAfterDays: 14,
+      autoPauseOnDelinquency: true,
+      fallbackOfferId: "ing-125",
     },
   },
 
@@ -108,8 +136,39 @@ export const AFFILIATE_OFFERS: AffiliateOffer[] = [
       buttonText: "text-white",
       glowColor: "rgba(59, 130, 246, 0.5)",
     },
+    ops: {
+      network: "direct",
+      contactEmail: null,
+      paymentTermsDays: 45,
+      gracePeriodDays: 10,
+      pauseTrafficAfterDays: 21,
+      autoPauseOnDelinquency: true,
+      fallbackOfferId: "ubank-30",
+    },
   },
 ];
+
+export function getAffiliateOfferById(offerId: string): AffiliateOffer | null {
+  return AFFILIATE_OFFERS.find((offer) => offer.id === offerId) ?? null;
+}
+
+export function getFallbackOffer(excludeOfferId?: string | null): AffiliateOffer {
+  if (excludeOfferId) {
+    const preferredFallbackId = getAffiliateOfferById(excludeOfferId)?.ops.fallbackOfferId;
+    const preferredFallback = preferredFallbackId
+      ? getAffiliateOfferById(preferredFallbackId)
+      : null;
+
+    if (preferredFallback) {
+      return preferredFallback;
+    }
+  }
+
+  const nextActive = AFFILIATE_OFFERS.find(
+    (offer) => offer.active && offer.id !== excludeOfferId
+  );
+  return nextActive ?? AFFILIATE_OFFERS.find((offer) => offer.id === "ubank-30")!;
+}
 
 /** Returns the highest-priority active offer, or the Ubank fallback */
 export function getActiveOffer(): AffiliateOffer {

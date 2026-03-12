@@ -1,4 +1,4 @@
-import { getActiveOffer } from "@/lib/affiliate-offers";
+import { getManagedActiveOffer } from "@/lib/affiliate-runtime";
 import { AffiliateLink } from "@/components/affiliate-link";
 import { affiliateFeaturesEnabled } from "@/lib/feature-flags";
 
@@ -6,7 +6,7 @@ import { affiliateFeaturesEnabled } from "@/lib/feature-flags";
  * Inline affiliate card that sits between branch listings.
  * Contextual: uses the suburb name and a nearby bank name for relevance.
  */
-export function InlineOfferCard({
+export async function InlineOfferCard({
   suburbName,
   suburbSlug,
   stateSlug,
@@ -19,7 +19,7 @@ export function InlineOfferCard({
 }) {
   if (!affiliateFeaturesEnabled) return null;
 
-  const offer = getActiveOffer();
+  const offer = await getManagedActiveOffer("bank_near_me");
 
   return (
     <div className="my-6 border border-amber-500/20 bg-amber-500/[0.03] p-5 sm:p-6">

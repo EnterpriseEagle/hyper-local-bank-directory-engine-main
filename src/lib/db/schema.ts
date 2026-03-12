@@ -322,6 +322,64 @@ export const weeklyRollups = sqliteTable(
   })
 );
 
+export const payoutReceipts = sqliteTable(
+  "payout_receipts",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    offerKey: text("offer_key").notNull(),
+    siteKey: text("site_key"),
+    source: text("source"),
+    amount: real("amount").notNull(),
+    currency: text("currency").notNull().default("AUD"),
+    periodStart: text("period_start"),
+    periodEnd: text("period_end"),
+    externalRef: text("external_ref"),
+    notes: text("notes"),
+    receivedAt: text("received_at").notNull(),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => ({
+    offerKeyIdx: index("idx_payout_receipts_offer_key").on(table.offerKey),
+    siteKeyIdx: index("idx_payout_receipts_site_key").on(table.siteKey),
+    receivedAtIdx: index("idx_payout_receipts_received_at").on(table.receivedAt),
+    externalRefIdx: index("idx_payout_receipts_external_ref").on(table.externalRef),
+  })
+);
+
+export const payoutCases = sqliteTable(
+  "payout_cases",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    caseKey: text("case_key").notNull(),
+    offerKey: text("offer_key").notNull(),
+    siteKey: text("site_key"),
+    status: text("status").notNull().default("monitoring"),
+    severity: text("severity").notNull().default("info"),
+    outstandingAmount: real("outstanding_amount").notNull().default(0),
+    currency: text("currency").notNull().default("AUD"),
+    dueConversions: integer("due_conversions").notNull().default(0),
+    oldestOccurredAt: text("oldest_occurred_at"),
+    dueAt: text("due_at"),
+    lastEscalatedAt: text("last_escalated_at"),
+    emailStage: text("email_stage"),
+    partnerEmail: text("partner_email"),
+    emailSubject: text("email_subject"),
+    emailBody: text("email_body"),
+    recommendedAction: text("recommended_action"),
+    metadataJson: text("metadata_json"),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+    resolvedAt: text("resolved_at"),
+  },
+  (table) => ({
+    caseKeyUnique: uniqueIndex("idx_payout_cases_case_key").on(table.caseKey),
+    offerKeyIdx: index("idx_payout_cases_offer_key").on(table.offerKey),
+    siteKeyIdx: index("idx_payout_cases_site_key").on(table.siteKey),
+    statusIdx: index("idx_payout_cases_status").on(table.status),
+    severityIdx: index("idx_payout_cases_severity").on(table.severity),
+  })
+);
+
 export const policyEvents = sqliteTable(
   "policy_events",
   {
