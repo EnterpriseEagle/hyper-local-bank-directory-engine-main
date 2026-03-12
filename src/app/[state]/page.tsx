@@ -2,6 +2,15 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getSuburbsByState, STATE_NAMES, STATE_ABBR } from "@/lib/data";
+import { StructuredData } from "@/components/structured-data";
+import {
+  absoluteUrl,
+  buildBreadcrumbSchema,
+  buildCollectionPageSchema,
+  buildFAQSchema,
+  buildItemListSchema,
+  buildMetadata,
+} from "@/lib/seo";
 import { toTitleCase } from "@/lib/utils";
 
 interface Props {
@@ -13,10 +22,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const stateName = STATE_NAMES[state];
   if (!stateName) return {};
 
-  return {
-    title: `Bank Branches & ATMs in ${stateName} - Find Your Local Branch`,
-    description: `Find bank branches, ATMs, and banking services across ${stateName}. Browse suburbs, compare opening hours, and track branch closures in ${STATE_ABBR[state]}.`,
-  };
+  return buildMetadata({
+    title: `Bank Branches and ATMs in ${stateName} - Find Your Local Branch`,
+    description: `Find bank branches, ATMs, and banking services across ${stateName}. Browse suburbs, compare opening hours, and track local branch closures in ${STATE_ABBR[state]}.`,
+    path: `/${state}`,
+    keywords: [
+      `${stateName} bank branches`,
+      `${stateName} ATMs`,
+      `${stateName} branch closures`,
+      `${STATE_ABBR[state]} bank directory`,
+    ],
+  });
 }
 
 export default async function StatePage({ params }: Props) {
@@ -32,6 +48,54 @@ export default async function StatePage({ params }: Props) {
   const totalBranches = suburbs.reduce((s, sub) => s + sub.branchCount, 0);
   const totalAtms = suburbs.reduce((s, sub) => s + sub.atmCount, 0);
   const totalClosed = suburbs.reduce((s, sub) => s + sub.closedBranches, 0);
+  const featuredSuburbs = suburbs.slice(0, 24);
+  const faq = [
+    {
+      q: `How do I find a bank branch in ${stateName}?`,
+      a: `Browse the suburb directory below to open location pages with branch counts, ATM coverage, and live service reporting for ${stateName}.`,
+    },
+    {
+      q: `Can I see branch closures across ${stateName}?`,
+      a: totalClosed > 0
+        ? `Yes. We currently track ${totalClosed} recent branch closure${totalClosed === 1 ? "" : "s"} across ${stateName}, alongside open locations and nearby alternatives.`
+        : `Yes. The state directory highlights open locations first and surfaces closure data as it becomes available across ${stateName}.`,
+    },
+    {
+      q: `Which suburbs in ${stateName} have bank branches and ATMs?`,
+      a: `${suburbs.length} suburb${suburbs.length === 1 ? "" : "s"} in ${stateName} currently have banking coverage on the directory, including ${totalBranches} open branches and ${totalAtms} ATMs.`,
+    },
+  ];
+
+  const breadcrumbSchema = buildBreadcrumbSchema([
+    { name: "Home", url: absoluteUrl("/") },
+    { name: stateName, url: absoluteUrl(`/${state}`) },
+  ]);
+
+  const collectionSchema = buildCollectionPageSchema({
+    name: `Bank branches and ATMs in ${stateName}`,
+    description: `Directory of bank branches, ATMs, and local service coverage across ${stateName}.`,
+    url: absoluteUrl(`/${state}`),
+    numberOfItems: suburbs.length,
+    about: {
+      "@type": "AdministrativeArea",
+      name: stateName,
+      containedInPlace: {
+        "@type": "Country",
+        name: "Australia",
+      },
+    },
+  });
+
+  const suburbListSchema = buildItemListSchema(
+    `Featured suburb banking pages in ${stateName}`,
+    featuredSuburbs.map((suburb) => ({
+      name: `${toTitleCase(suburb.name)} ${suburb.postcode}`,
+      url: absoluteUrl(`/${state}/${suburb.slug}`),
+      description: `${suburb.branchCount} branch${suburb.branchCount === 1 ? "" : "es"} and ${suburb.atmCount} ATM${suburb.atmCount === 1 ? "" : "s"}`,
+    }))
+  );
+
+  const faqSchema = buildFAQSchema(faq);
 
   return (
     <div>
@@ -184,22 +248,31 @@ export default async function StatePage({ params }: Props) {
         </div>
       </section>
 
-      {/* JSON-LD */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "CollectionPage",
-            name: `Bank Branches in ${stateName}`,
-            description: `Find bank branches and ATMs across ${stateName}, Australia`,
-            numberOfItems: suburbs.length,
-            isPartOf: {
-              "@type": "WebSite",
-              name: "BANK NEAR ME\u00ae",
-            },
-          }),
-        }}
+      <section className="border-t border-white/5 px-6 sm:px-10 py-16 sm:py-20 bg-black">
+        <div className="max-w-[900px] mx-auto">
+          <p className="mb-3 text-[10px] uppercase tracking-[0.2em] text-white/30 font-medium">
+            FAQ
+          </p>
+          <h2 className="mb-10 font-serif text-[clamp(1.5rem,3vw,2.25rem)] font-light leading-[1.1] text-white">
+            Planning a Bank Visit in {stateName}
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-white/5">
+            {faq.map((item) => (
+              <div key={item.q} className="bg-black p-6">
+                <h3 className="mb-3 text-[15px] font-medium text-white/90">
+                  {item.q}
+                </h3>
+                <p className="text-[14px] font-light leading-[1.8] text-white/45">
+                  {item.a}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <StructuredData
+        data={[collectionSchema, breadcrumbSchema, suburbListSchema, faqSchema].filter(Boolean)}
       />
     </div>
   );

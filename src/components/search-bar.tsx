@@ -59,6 +59,19 @@ export function SearchBar() {
     setOpen(false);
   }
 
+  function submitQuery() {
+    const trimmed = query.trim();
+    if (trimmed.length < 2) return;
+
+    if (results.length > 0) {
+      selectResult(results[0]);
+      return;
+    }
+
+    router.push(`/search?q=${encodeURIComponent(trimmed)}`);
+    setOpen(false);
+  }
+
   return (
     <div ref={ref} className="relative z-[70] w-full isolate">
       <div className="relative">
@@ -80,6 +93,12 @@ export function SearchBar() {
           value={query}
           onChange={(e) => handleChange(e.target.value)}
           onFocus={() => results.length > 0 && setOpen(true)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              submitQuery();
+            }
+          }}
           placeholder="Search suburb or postcode..."
           className="w-full pl-9 pr-4 py-2 text-[12px] font-light tracking-wide border border-white/10 bg-white/[0.03] text-white placeholder:text-white/25 focus:outline-none focus:border-white/25 transition-colors duration-300"
         />

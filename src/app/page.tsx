@@ -655,20 +655,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* JSON-LD */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "WebSite",
-              name: "BANK NEAR ME\u00ae",
-              url: SITE_URL,
-                description:
-                  "Australia's crowd-sourced bank status tracker. Live ATM outages, branch closures, and queue reports across 15,000+ suburbs.",
-          }),
-        }}
-      />
+      <StructuredData data={[homeSchema, datasetSchema, faqSchema].filter(Boolean)} />
     </div>
   );
 }

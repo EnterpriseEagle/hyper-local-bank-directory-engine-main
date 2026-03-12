@@ -2,6 +2,7 @@
 import { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { StructuredData } from "@/components/structured-data";
 import { 
   getAtmsForSuburb,
   getSuburbBySlug,
@@ -9,6 +10,14 @@ import {
 } from "@/lib/data";
 import { generateATMSEOContent } from "@/lib/seo-content";
 import { StatusReporter } from "@/components/status-reporter";
+import {
+  absoluteUrl,
+  buildBreadcrumbSchema,
+  buildCollectionPageSchema,
+  buildFAQSchema,
+  buildItemListSchema,
+  buildMetadata,
+} from "@/lib/seo";
 import { toTitleCase } from "@/lib/utils";
 
 interface PageProps {
@@ -23,10 +32,16 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const atms = await getAtmsForSuburb(suburb.slug);
   const seo = generateATMSEOContent(toTitleCase(suburb.name), atms.length);
 
-  return {
+  return buildMetadata({
     title: seo.title,
     description: seo.description,
-  };
+    path: `/atm/${suburb.slug}`,
+    keywords: [
+      `${toTitleCase(suburb.name)} ATMs`,
+      `${toTitleCase(suburb.name)} fee free ATM`,
+      `${toTitleCase(suburb.name)} cash withdrawal`,
+    ],
+  });
 }
 
 export default async function ATMSuburbPage({ params }: PageProps) {
@@ -37,6 +52,60 @@ export default async function ATMSuburbPage({ params }: PageProps) {
   const atms = await getAtmsForSuburb(suburb.slug);
   const displayName = toTitleCase(suburb.name);
   const seo = generateATMSEOContent(displayName, atms.length);
+  const pageUrl = absoluteUrl(`/atm/${suburb.slug}`);
+  const breadcrumbSchema = buildBreadcrumbSchema([
+    { name: "Home", url: absoluteUrl("/") },
+    { name: STATE_NAMES[suburb.stateSlug], url: absoluteUrl(`/${suburb.stateSlug}`) },
+    { name: displayName, url: absoluteUrl(`/${suburb.stateSlug}/${suburb.slug}`) },
+    { name: "ATMs", url: pageUrl },
+  ]);
+  const collectionSchema = buildCollectionPageSchema({
+    name: `ATMs in ${displayName}`,
+    description: seo.description,
+    url: pageUrl,
+    numberOfItems: atms.length,
+    about: {
+      "@type": "Place",
+      name: `${displayName}, ${suburb.state} ${suburb.postcode}`,
+      geo: {
+        "@type": "GeoCoordinates",
+        latitude: suburb.lat,
+        longitude: suburb.lng,
+      },
+    },
+  });
+  const atmListSchema = buildItemListSchema(
+    `ATM locations in ${displayName}`,
+    atms.slice(0, 20).map((atm) => ({
+      name: atm.name,
+      url: pageUrl,
+      description: `${atm.bankName} - ${atm.address}`,
+    }))
+  );
+  const faqSchema = buildFAQSchema(seo.faq);
+  const atmSchemas = atms.slice(0, 20).map((atm) => ({
+    "@context": "https://schema.org",
+    "@type": "AutomatedTeller",
+    name: atm.name,
+    provider: {
+      "@type": "BankOrCreditUnion",
+      name: atm.bankName,
+      url: absoluteUrl(`/bank/${atm.bankSlug}`),
+    },
+    address: {
+      "@type": "PostalAddress",
+      streetAddress: atm.address,
+      addressLocality: displayName,
+      addressRegion: suburb.state,
+      postalCode: suburb.postcode,
+      addressCountry: "AU",
+    },
+    geo: {
+      "@type": "GeoCoordinates",
+      latitude: atm.lat,
+      longitude: atm.lng,
+    },
+  }));
 
   return (
     <div className="bg-black text-white">
@@ -120,6 +189,10 @@ export default async function ATMSuburbPage({ params }: PageProps) {
           </div>
         </div>
       </section>
+
+      <StructuredData
+        data={[collectionSchema, breadcrumbSchema, atmListSchema, faqSchema, ...atmSchemas].filter(Boolean)}
+      />
     </div>
   );
 }

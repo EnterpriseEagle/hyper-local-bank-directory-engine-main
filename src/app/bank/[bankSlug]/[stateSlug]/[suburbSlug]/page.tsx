@@ -2,6 +2,7 @@
 import { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { StructuredData } from "@/components/structured-data";
 import {
   getBankBySlug,
   getBankBranchesInSuburb,
@@ -10,6 +11,14 @@ import {
 } from "@/lib/data";
 import { generateBankSEOContent } from "@/lib/seo-content";
 import { StatusReporter } from "@/components/status-reporter";
+import {
+  absoluteUrl,
+  buildBreadcrumbSchema,
+  buildCollectionPageSchema,
+  buildFAQSchema,
+  buildItemListSchema,
+  buildMetadata,
+} from "@/lib/seo";
 import { toTitleCase } from "@/lib/utils";
 
 interface PageProps {
@@ -32,10 +41,16 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const seo = generateBankSEOContent(bank.name, toTitleCase(suburb.name), "suburb", { openBranches, atms, closedBranches });
 
-  return {
+  return buildMetadata({
     title: seo.title,
     description: seo.description,
-  };
+    path: `/bank/${bank.slug}/${stateSlug}/${suburb.slug}`,
+    keywords: [
+      `${bank.name} ${toTitleCase(suburb.name)}`,
+      `${bank.name} ${toTitleCase(suburb.name)} branch`,
+      `${bank.name} ${toTitleCase(suburb.name)} ATM`,
+    ],
+  });
 }
 
 export default async function BankSuburbPage({ params }: PageProps) {
@@ -58,6 +73,65 @@ export default async function BankSuburbPage({ params }: PageProps) {
     atms: atmsCount, 
     closedBranches: closedCount 
   });
+  const pageUrl = absoluteUrl(`/bank/${bank.slug}/${stateSlug}/${suburb.slug}`);
+  const breadcrumbSchema = buildBreadcrumbSchema([
+    { name: "Home", url: absoluteUrl("/") },
+    { name: "Banks", url: absoluteUrl("/bank") },
+    { name: bank.name, url: absoluteUrl(`/bank/${bank.slug}`) },
+    { name: STATE_NAMES[stateSlug], url: absoluteUrl(`/bank/${bank.slug}/${stateSlug}`) },
+    { name: displayName, url: pageUrl },
+  ]);
+  const collectionSchema = buildCollectionPageSchema({
+    name: `${bank.name} in ${displayName}`,
+    description: seo.description,
+    url: pageUrl,
+    numberOfItems: branches.length,
+    about: {
+      "@type": "Place",
+      name: `${displayName}, ${suburb.state} ${suburb.postcode}`,
+      geo: {
+        "@type": "GeoCoordinates",
+        latitude: suburb.lat,
+        longitude: suburb.lng,
+      },
+    },
+  });
+  const locationListSchema = buildItemListSchema(
+    `${bank.name} locations in ${displayName}`,
+    branches.slice(0, 20).map((branch) => ({
+      name: branch.name,
+      url: pageUrl,
+      description: branch.address,
+    }))
+  );
+  const faqSchema = buildFAQSchema(seo.faq);
+  const branchSchemas = branches
+    .filter((branch) => branch.type === "branch")
+    .slice(0, 20)
+    .map((branch) => ({
+    "@context": "https://schema.org",
+    "@type": "BankOrCreditUnion",
+    name: branch.name,
+    branchCode: branch.bsb || undefined,
+    address: {
+      "@type": "PostalAddress",
+      streetAddress: branch.address,
+      addressLocality: displayName,
+      addressRegion: suburb.state,
+      postalCode: suburb.postcode,
+      addressCountry: "AU",
+    },
+    geo: {
+      "@type": "GeoCoordinates",
+      latitude: branch.lat,
+      longitude: branch.lng,
+    },
+    parentOrganization: {
+      "@type": "BankOrCreditUnion",
+      name: bank.name,
+      url: absoluteUrl(`/bank/${bank.slug}`),
+    },
+  }));
 
   return (
     <div className="bg-black text-white">
@@ -195,6 +269,10 @@ export default async function BankSuburbPage({ params }: PageProps) {
           </div>
         </div>
       </section>
+
+      <StructuredData
+        data={[collectionSchema, breadcrumbSchema, locationListSchema, faqSchema, ...branchSchemas].filter(Boolean)}
+      />
     </div>
   );
 }

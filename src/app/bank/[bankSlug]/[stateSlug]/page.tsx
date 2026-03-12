@@ -2,6 +2,7 @@
 import { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { StructuredData } from "@/components/structured-data";
 import { 
   getBankBySlug, 
   getBankSuburbsInState,
@@ -9,6 +10,14 @@ import {
 } from "@/lib/data";
 import { generateBankSEOContent } from "@/lib/seo-content";
 import { SwitchOfferCard } from "@/components/switch-banner";
+import {
+  absoluteUrl,
+  buildBreadcrumbSchema,
+  buildCollectionPageSchema,
+  buildFAQSchema,
+  buildItemListSchema,
+  buildMetadata,
+} from "@/lib/seo";
 
 interface PageProps {
   params: Promise<{ bankSlug: string; stateSlug: string }>;
@@ -27,10 +36,16 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const seo = generateBankSEOContent(bank.name, stateName, "state", { openBranches, atms, closedBranches });
 
-  return {
+  return buildMetadata({
     title: seo.title,
     description: seo.description,
-  };
+    path: `/bank/${bank.slug}/${stateSlug}`,
+    keywords: [
+      `${bank.name} ${stateName} branches`,
+      `${bank.name} ${stateName} ATMs`,
+      `${bank.name} ${stateName} locations`,
+    ],
+  });
 }
 
 export default async function BankStatePage({ params }: PageProps) {
@@ -45,6 +60,36 @@ export default async function BankStatePage({ params }: PageProps) {
   const closedBranches = suburbs.reduce((acc, s) => acc + s.closedCount, 0);
 
   const seo = generateBankSEOContent(bank.name, stateName, "state", { openBranches, atms, closedBranches });
+  const pageUrl = absoluteUrl(`/bank/${bank.slug}/${stateSlug}`);
+  const breadcrumbSchema = buildBreadcrumbSchema([
+    { name: "Home", url: absoluteUrl("/") },
+    { name: "Banks", url: absoluteUrl("/bank") },
+    { name: bank.name, url: absoluteUrl(`/bank/${bank.slug}`) },
+    { name: stateName, url: pageUrl },
+  ]);
+  const collectionSchema = buildCollectionPageSchema({
+    name: `${bank.name} locations in ${stateName}`,
+    description: seo.description,
+    url: pageUrl,
+    numberOfItems: suburbs.length,
+    about: {
+      "@type": "AdministrativeArea",
+      name: stateName,
+      containedInPlace: {
+        "@type": "Country",
+        name: "Australia",
+      },
+    },
+  });
+  const suburbListSchema = buildItemListSchema(
+    `${bank.name} suburbs in ${stateName}`,
+    suburbs.slice(0, 24).map((suburb) => ({
+      name: suburb.suburbName,
+      url: absoluteUrl(`/bank/${bank.slug}/${stateSlug}/${suburb.suburbSlug}`),
+      description: `${suburb.branchCount} branches and ${suburb.atmCount} ATMs`,
+    }))
+  );
+  const faqSchema = buildFAQSchema(seo.faq);
 
   return (
     <div className="bg-black text-white">
@@ -139,6 +184,10 @@ export default async function BankStatePage({ params }: PageProps) {
           </div>
         </div>
       </section>
+
+      <StructuredData
+        data={[collectionSchema, breadcrumbSchema, suburbListSchema, faqSchema].filter(Boolean)}
+      />
     </div>
   );
 }

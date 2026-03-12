@@ -2,6 +2,7 @@
 import { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { StructuredData } from "@/components/structured-data";
 import { 
   getBankBySlug, 
   getBankBranchStats, 
@@ -10,6 +11,14 @@ import {
 } from "@/lib/data";
 import { generateBankSEOContent } from "@/lib/seo-content";
 import { SwitchOfferCard } from "@/components/switch-banner";
+import {
+  absoluteUrl,
+  buildBreadcrumbSchema,
+  buildCollectionPageSchema,
+  buildFAQSchema,
+  buildItemListSchema,
+  buildMetadata,
+} from "@/lib/seo";
 
 interface PageProps {
   params: Promise<{ bankSlug: string }>;
@@ -23,10 +32,17 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const stats = await getBankBranchStats(bank.id);
   const seo = generateBankSEOContent(bank.name, "Australia", "national", stats);
 
-  return {
+  return buildMetadata({
     title: seo.title,
     description: seo.description,
-  };
+    path: `/bank/${bank.slug}`,
+    keywords: [
+      `${bank.name} branches`,
+      `${bank.name} ATMs`,
+      `${bank.name} Australia`,
+      `${bank.name} closures`,
+    ],
+  });
 }
 
 export default async function BankPage({ params }: PageProps) {
@@ -40,6 +56,44 @@ export default async function BankPage({ params }: PageProps) {
   ]);
 
   const seo = generateBankSEOContent(bank.name, "Australia", "national", stats);
+  const pageUrl = absoluteUrl(`/bank/${bank.slug}`);
+  const breadcrumbSchema = buildBreadcrumbSchema([
+    { name: "Home", url: absoluteUrl("/") },
+    { name: "Banks", url: absoluteUrl("/bank") },
+    { name: bank.name, url: pageUrl },
+  ]);
+  const collectionSchema = buildCollectionPageSchema({
+    name: `${bank.name} branches and ATMs in Australia`,
+    description: seo.description,
+    url: pageUrl,
+    numberOfItems: states.length,
+    about: {
+      "@type": "BankOrCreditUnion",
+      name: bank.name,
+      url: bank.website || pageUrl,
+    },
+  });
+  const stateListSchema = buildItemListSchema(
+    `${bank.name} state coverage`,
+    states.map((state) => ({
+      name: STATE_NAMES[state.stateSlug] || state.state,
+      url: absoluteUrl(`/bank/${bank.slug}/${state.stateSlug}`),
+      description: `${state.branchCount} branches and ${state.atmCount} ATMs`,
+    }))
+  );
+  const bankSchema = {
+    "@context": "https://schema.org",
+    "@type": "BankOrCreditUnion",
+    name: bank.name,
+    url: bank.website || pageUrl,
+    mainEntityOfPage: pageUrl,
+    description: seo.description,
+    areaServed: {
+      "@type": "Country",
+      name: "Australia",
+    },
+  };
+  const faqSchema = buildFAQSchema(seo.faq);
 
   return (
     <div className="bg-black text-white">
@@ -150,22 +204,8 @@ export default async function BankPage({ params }: PageProps) {
         </div>
       </section>
 
-      {/* JSON-LD */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "BankOrCreditUnion",
-            "name": bank.name,
-            "url": bank.website,
-            "description": seo.description,
-            "address": {
-              "@type": "PostalAddress",
-              "addressCountry": "AU"
-            }
-          }),
-        }}
+      <StructuredData
+        data={[collectionSchema, breadcrumbSchema, stateListSchema, bankSchema, faqSchema].filter(Boolean)}
       />
     </div>
   );

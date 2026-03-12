@@ -7,16 +7,31 @@ import {
   getStats,
   STATE_NAMES
 } from "@/lib/data";
+import { StructuredData } from "@/components/structured-data";
 import { SwitchOfferCard } from "@/components/switch-banner";
-import { SITE_URL } from "@/lib/site-url";
+import {
+  absoluteUrl,
+  buildBreadcrumbSchema,
+  buildCollectionPageSchema,
+  buildFAQSchema,
+  buildItemListSchema,
+  buildMetadata,
+} from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Bank Branch Closures Australia 2026 - Live Tracker",
-  description: "Track the latest bank branch closures across Australia. See which suburbs are losing branches and find the nearest open locations. Commonwealth, ANZ, Westpac, and NAB closure data.",
-  alternates: {
-    canonical: `${SITE_URL}/closures`,
-  },
-};
+const currentYear = new Date().getFullYear();
+
+export const metadata: Metadata = buildMetadata({
+  title: `Bank Branch Closures Australia ${currentYear} - Live Tracker`,
+  description:
+    "Track the latest bank branch closures across Australia. See which suburbs are losing branches, compare local impact, and find the nearest open banking alternatives.",
+  path: "/closures",
+  keywords: [
+    "bank branch closures Australia",
+    "Australian bank closures tracker",
+    "bank branch shutdowns Australia",
+    "local bank closure data",
+  ],
+});
 
 export default async function ClosuresPage() {
   const [recentClosures, topSuburbs, stats] = await Promise.all([
@@ -24,6 +39,39 @@ export default async function ClosuresPage() {
     getTopClosureSuburbs(20),
     getStats(),
   ]);
+  const faq = [
+    {
+      q: "How current is the bank closures tracker?",
+      a: "The closures page is refreshed from the latest mapped branch records and links directly to local suburb pages where you can check remaining branches and ATMs.",
+    },
+    {
+      q: "Which suburbs are most affected by branch closures?",
+      a: "Use the most impacted suburb list to see where closures are concentrated, then open each suburb page for alternative branches, ATM access, and live status reports.",
+    },
+    {
+      q: "Where can I find nearby banking alternatives after a closure?",
+      a: "Every closure entry links to a suburb page where you can compare remaining branches, ATMs, and recent local service updates before travelling.",
+    },
+  ];
+  const breadcrumbSchema = buildBreadcrumbSchema([
+    { name: "Home", url: absoluteUrl("/") },
+    { name: "Closures", url: absoluteUrl("/closures") },
+  ]);
+  const collectionSchema = buildCollectionPageSchema({
+    name: `Bank branch closures Australia ${currentYear}`,
+    description: "Live tracker for Australian bank branch closures and suburb-level impact.",
+    url: absoluteUrl("/closures"),
+    numberOfItems: recentClosures.length,
+  });
+  const closureListSchema = buildItemListSchema(
+    "Recent Australian bank branch closures",
+    recentClosures.slice(0, 25).map((closure) => ({
+      name: closure.branchName,
+      url: absoluteUrl(`/${closure.stateSlug}/${closure.suburbSlug}`),
+      description: `${closure.suburbName}, ${closure.state} ${closure.postcode}`,
+    }))
+  );
+  const faqSchema = buildFAQSchema(faq);
 
   return (
     <div className="bg-black text-white min-h-screen">
@@ -49,7 +97,7 @@ export default async function ClosuresPage() {
           
           <h1 className="mb-8 font-serif text-[clamp(2.5rem,8vw,5rem)] font-light leading-[1] tracking-tight text-white">
             Bank Branch Closures <br />
-            <span className="text-white/30">Australia 2026</span>
+            <span className="text-white/30">Australia {currentYear}</span>
           </h1>
 
           <p className="mx-auto mb-12 max-w-[600px] text-[18px] font-light leading-relaxed text-white/50">
@@ -148,26 +196,28 @@ export default async function ClosuresPage() {
         </div>
       </div>
 
-      {/* JSON-LD */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "WebPage",
-            "name": "Bank Branch Closures Australia 2026",
-            "description": "Live tracker for bank closures across Australia.",
-            "mainEntity": {
-              "@type": "ItemList",
-              "itemListElement": recentClosures.map((c, i) => ({
-                "@type": "ListItem",
-                "position": i + 1,
-                "name": `${c.branchName} - Closed`,
-                "description": `Branch located in ${c.suburbName}, ${c.state} recently closed.`
-              }))
-            }
-          }),
-        }}
+      <section className="border-t border-white/5 px-6 py-16 sm:px-10 sm:py-20 bg-black">
+        <div className="mx-auto max-w-[900px]">
+          <h2 className="mb-10 font-serif text-[clamp(1.5rem,3vw,2.5rem)] font-light text-white">
+            Closures FAQ
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-white/5">
+            {faq.map((item) => (
+              <div key={item.q} className="bg-black p-6">
+                <h3 className="mb-3 text-[15px] font-medium text-white/90">
+                  {item.q}
+                </h3>
+                <p className="text-[14px] font-light leading-relaxed text-white/45">
+                  {item.a}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <StructuredData
+        data={[collectionSchema, breadcrumbSchema, closureListSchema, faqSchema].filter(Boolean)}
       />
     </div>
   );

@@ -11,9 +11,18 @@ import {
   STATE_NAMES,
   STATE_ABBR,
 } from "@/lib/data";
+import { StructuredData } from "@/components/structured-data";
 import { StatusReporter } from "@/components/status-reporter";
 import { SwitchStickyBar } from "@/components/switch-banner";
 import { InlineOfferCard } from "@/components/inline-offer";
+import {
+  absoluteUrl,
+  buildBreadcrumbSchema,
+  buildCollectionPageSchema,
+  buildFAQSchema,
+  buildItemListSchema,
+  buildMetadata,
+} from "@/lib/seo";
 import { toTitleCase } from "@/lib/utils";
 
 interface Props {
@@ -37,15 +46,18 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const abbr = STATE_ABBR[state] || suburb.state;
   const displayName = toTitleCase(suburb.name);
 
-  return {
+  return buildMetadata({
     title: `Banks and ATMs in ${displayName}, ${abbr} ${suburb.postcode} - Live Status`,
     description: `Find bank branches, ATMs, and live service status in ${displayName}, ${stateName} ${suburb.postcode}. Report ATM outages, branch closures, and long queues. Updated by the community.`,
-    openGraph: {
-      title: `Banks and ATMs in ${displayName}, ${abbr} ${suburb.postcode} - Live Status`,
-      description: `Live crowd-sourced status for banks and ATMs in ${displayName}. Report outages, check service status.`,
-      type: "website",
-    },
-  };
+    path: `/${state}/${suburb.slug}`,
+    keywords: [
+      `${displayName} bank branches`,
+      `${displayName} ATMs`,
+      `${displayName} ${abbr} banks`,
+      `${displayName} bank status`,
+    ],
+    openGraphDescription: `Live crowd-sourced status for banks and ATMs in ${displayName}. Report outages, check service status, and find nearby alternatives.`,
+  });
 }
 
 function timeAgo(dateStr: string) {
@@ -94,6 +106,22 @@ export default async function SuburbPage({ params }: Props) {
     (b) => b.type === "branch" && b.status === "closed"
   );
   const atms = branches.filter((b) => b.type === "atm" && b.status === "open");
+  const faq = [
+    {
+      q: `How many bank branches are open in ${displayName}?`,
+      a: `${displayName} currently has ${openBranches.length} open bank branch${openBranches.length === 1 ? "" : "es"} and ${atms.length} ATM${atms.length === 1 ? "" : "s"} listed on the directory.`,
+    },
+    {
+      q: `Can I report an ATM outage or long queue in ${displayName}?`,
+      a: `Yes. The status reporter on this page lets locals submit anonymous updates for ATM outages, branch closures, and long queues so the suburb page stays current.`,
+    },
+    {
+      q: `Where do I find alternatives if a branch in ${displayName} is closed?`,
+      a: nearby.length > 0
+        ? `Use the nearby suburb links on this page to find alternative branches and ATMs near ${displayName}, then compare the local status before you travel.`
+        : `Use the ATM and branch listings on this page to compare the remaining locations in ${displayName} and nearby suburbs.`,
+    },
+  ];
 
   // JSON-LD LocalBusiness markup for each open branch
   const jsonLdItems = openBranches.map((b) => ({
@@ -123,14 +151,46 @@ export default async function SuburbPage({ params }: Props) {
       : {}),
   }));
 
-  const jsonLdPage = {
-    "@context": "https://schema.org",
-    "@type": "WebPage",
-    name: `Banks and ATMs in ${displayName}, ${abbr} ${suburb.postcode} - Live Status`,
-    description: `Live crowd-sourced status for banks and ATMs in ${displayName}`,
-    dateModified: new Date().toISOString(),
-    isPartOf: { "@type": "WebSite", name: "BANK NEAR ME\u00ae" },
-  };
+  const pageUrl = absoluteUrl(`/${state}/${suburb.slug}`);
+  const breadcrumbSchema = buildBreadcrumbSchema([
+    { name: "Home", url: absoluteUrl("/") },
+    { name: stateName, url: absoluteUrl(`/${state}`) },
+    { name: `${displayName} ${suburb.postcode}`, url: pageUrl },
+  ]);
+
+  const suburbSchema = buildCollectionPageSchema({
+    name: `Banks and ATMs in ${displayName}, ${abbr} ${suburb.postcode}`,
+    description: `Live local bank status, ATM access, and closure tracking for ${displayName}, ${stateName}.`,
+    url: pageUrl,
+    numberOfItems: branches.length,
+    about: {
+      "@type": "Place",
+      name: `${displayName}, ${abbr} ${suburb.postcode}`,
+      address: {
+        "@type": "PostalAddress",
+        addressLocality: displayName,
+        addressRegion: abbr,
+        postalCode: suburb.postcode,
+        addressCountry: "AU",
+      },
+      geo: {
+        "@type": "GeoCoordinates",
+        latitude: suburb.lat,
+        longitude: suburb.lng,
+      },
+    },
+  });
+
+  const branchListSchema = buildItemListSchema(
+    `Open bank branches in ${displayName}`,
+    openBranches.slice(0, 20).map((branch) => ({
+      name: branch.name,
+      url: absoluteUrl(`/bank/${branch.bankSlug}/${state}/${suburb.slug}`),
+      description: branch.address,
+    }))
+  );
+
+  const faqSchema = buildFAQSchema(faq);
 
   return (
     <div>
@@ -504,15 +564,40 @@ export default async function SuburbPage({ params }: Props) {
         </div>
       </section>
 
+      <section className="border-b border-white/5 px-6 sm:px-10 py-16 sm:py-20 bg-black">
+        <div className="max-w-[900px] mx-auto">
+          <p className="mb-3 text-[10px] uppercase tracking-[0.2em] text-white/30 font-medium">
+            FAQ
+          </p>
+          <h2 className="mb-8 font-serif text-[clamp(1.25rem,3vw,2rem)] font-light leading-[1.1] text-white">
+            Visiting a Branch in {displayName}
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-white/5">
+            {faq.map((item) => (
+              <div key={item.q} className="bg-black p-6">
+                <h3 className="mb-3 text-[15px] font-medium text-white/90">
+                  {item.q}
+                </h3>
+                <p className="text-[14px] font-light leading-[1.8] text-white/45">
+                  {item.a}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
         {/* Sticky "Deny" Banner */}
         <SwitchStickyBar suburbName={displayName} suburbSlug={suburb.slug} stateSlug={suburb.stateSlug} />
 
-      {/* JSON-LD */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify([jsonLdPage, ...jsonLdItems]),
-        }}
+      <StructuredData
+        data={[
+          suburbSchema,
+          breadcrumbSchema,
+          branchListSchema,
+          faqSchema,
+          ...jsonLdItems,
+        ].filter(Boolean)}
       />
     </div>
   );

@@ -2,15 +2,27 @@
 import { Metadata } from "next";
 import Link from "next/link";
 import { getAllBanks, getStats } from "@/lib/data";
-import { SITE_URL } from "@/lib/site-url";
+import { StructuredData } from "@/components/structured-data";
+import {
+  absoluteUrl,
+  buildBreadcrumbSchema,
+  buildCollectionPageSchema,
+  buildItemListSchema,
+  buildMetadata,
+} from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Banks in Australia - Browse Branches & ATMs by Bank",
-  description: "Browse all major and regional banks in Australia. Find branch locations, ATM status, and contact details for Commonwealth Bank, Westpac, ANZ, NAB, and more.",
-  alternates: {
-    canonical: `${SITE_URL}/bank`,
-  },
-};
+export const metadata: Metadata = buildMetadata({
+  title: "Banks in Australia - Browse Branches and ATMs by Bank",
+  description:
+    "Browse major, regional, digital, and mutual banks in Australia. Find branch locations, ATM coverage, and live local status pages for Commonwealth Bank, Westpac, ANZ, NAB, and more.",
+  path: "/bank",
+  keywords: [
+    "banks in Australia",
+    "Australian bank directory",
+    "bank branches by bank",
+    "Australian bank ATM directory",
+  ],
+});
 
 export default async function BanksPage() {
   const [banks, stats] = await Promise.all([
@@ -24,6 +36,26 @@ export default async function BanksPage() {
     digital: banks.filter(b => b.type === "digital"),
     credit_union: banks.filter(b => b.type === "credit_union"),
   };
+
+  const collectionSchema = buildCollectionPageSchema({
+    name: "Banks in Australia",
+    description:
+      `Directory of ${banks.length} Australian banks with access to ${stats.openBranches.toLocaleString()} open branches and ${stats.atms.toLocaleString()} mapped ATMs.`,
+    url: absoluteUrl("/bank"),
+    numberOfItems: banks.length,
+    mainEntity: buildItemListSchema(
+      "Australian bank directory",
+      banks.map((bank) => ({
+        name: bank.name,
+        url: absoluteUrl(`/bank/${bank.slug}`),
+      }))
+    ),
+  });
+
+  const breadcrumbSchema = buildBreadcrumbSchema([
+    { name: "Home", url: absoluteUrl("/") },
+    { name: "Banks", url: absoluteUrl("/bank") },
+  ]);
 
   return (
     <div className="bg-black text-white min-h-screen">
@@ -98,23 +130,7 @@ export default async function BanksPage() {
         </div>
       </div>
       
-      {/* JSON-LD */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "ItemList",
-            "name": "Banks in Australia",
-            "itemListElement": banks.map((b, i) => ({
-              "@type": "ListItem",
-              "position": i + 1,
-              "url": `${SITE_URL}/bank/${b.slug}`,
-              "name": b.name
-            }))
-          }),
-        }}
-      />
+      <StructuredData data={[collectionSchema, breadcrumbSchema]} />
     </div>
   );
 }

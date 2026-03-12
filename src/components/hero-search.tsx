@@ -59,6 +59,19 @@ export function HeroSearch() {
     setOpen(false);
   }
 
+  function submitQuery() {
+    const trimmed = query.trim();
+    if (trimmed.length < 2) return;
+
+    if (results.length > 0) {
+      selectResult(results[0]);
+      return;
+    }
+
+    router.push(`/search?q=${encodeURIComponent(trimmed)}`);
+    setOpen(false);
+  }
+
   return (
     <div ref={ref} className="relative z-[90] w-full max-w-[640px] isolate">
       <div className="relative">
@@ -80,13 +93,17 @@ export function HeroSearch() {
           value={query}
           onChange={(e) => handleChange(e.target.value)}
           onFocus={() => results.length > 0 && setOpen(true)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              submitQuery();
+            }
+          }}
           placeholder="Enter suburb or postcode..."
           className="w-full pl-14 pr-36 py-5 text-[16px] font-light tracking-wide border border-white/15 bg-white/[0.04] text-white placeholder:text-white/30 focus:outline-none focus:border-white/30 focus:bg-white/[0.06] transition-all duration-300"
         />
         <button
-          onClick={() => {
-            if (results.length > 0) selectResult(results[0]);
-          }}
+          onClick={submitQuery}
           className="absolute right-2 top-1/2 -translate-y-1/2 px-6 py-3 bg-white text-black text-[11px] uppercase tracking-[0.2em] font-medium hover:bg-white/90 transition-colors duration-300"
         >
           Find Banks
