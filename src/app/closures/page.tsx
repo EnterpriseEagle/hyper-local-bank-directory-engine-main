@@ -222,29 +222,49 @@ export default async function ClosuresPage() {
         </div>
 
         {/* Sidebar */}
-        <div className="space-y-16">
-          <div>
-            <h2 className="mb-8 font-serif text-[24px] font-light">Most Impacted</h2>
-            <div className="space-y-6">
-              {topSuburbs.map((s, i) => (
-                <Link 
-                  key={i} 
-                  href={`/${s.stateSlug}/${s.slug}`}
-                  className="group block border-b border-white/5 pb-4"
-                >
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-[15px] font-light text-white group-hover:text-red-400 transition-colors">
-                      {toTitleCase(s.name)}
-                    </span>
-                    <span className="text-[12px] font-serif font-light text-red-400/80">
-                      {s.closedBranches} closures
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-white/30 uppercase tracking-widest">
-                    {s.state} {s.postcode}
+        <div className="space-y-10">
+          <div className="border border-white/5 bg-white/[0.02]">
+            <div className="border-b border-white/5 px-6 py-5">
+              <div className="flex items-end justify-between gap-4">
+                <div>
+                  <h2 className="font-serif text-[24px] font-light">Most Impacted</h2>
+                  <p className="mt-2 text-[13px] leading-relaxed text-white/40">
+                    The top {topSuburbs.length} suburbs with the heaviest closure concentration.
                   </p>
-                </Link>
-              ))}
+                </div>
+                <span className="text-[10px] uppercase tracking-[0.2em] text-white/25">
+                  Scroll list
+                </span>
+              </div>
+            </div>
+
+            <div className="max-h-[34rem] overflow-y-auto p-2 sm:p-3">
+              <div className="grid grid-cols-1 gap-px bg-white/5 sm:grid-cols-2 lg:grid-cols-1">
+                {topSuburbs.map((s, i) => (
+                  <Link
+                    key={i}
+                    href={`/${s.stateSlug}/${s.slug}`}
+                    className="group bg-black p-4 transition-colors hover:bg-white/[0.03]"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="text-[10px] uppercase tracking-[0.2em] text-white/25">
+                          {s.state}
+                        </p>
+                        <h3 className="mt-2 text-[15px] font-light text-white transition-colors group-hover:text-red-400">
+                          {toTitleCase(s.name)}
+                        </h3>
+                        <p className="mt-2 text-[11px] uppercase tracking-[0.18em] text-white/30">
+                          {s.postcode}
+                        </p>
+                      </div>
+                      <span className="font-serif text-[13px] font-light text-red-400/80">
+                        {s.closedBranches}
+                      </span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
             </div>
           </div>
 
