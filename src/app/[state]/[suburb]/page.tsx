@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { LiveSignalList } from "@/components/live-signal-list";
+import { TripPlanCard } from "@/components/trip-plan-card";
 import {
   getSuburbBySlugInState,
   getBranchesForSuburb,
@@ -25,6 +26,7 @@ import {
   buildItemListSchema,
   buildMetadata,
 } from "@/lib/seo";
+import { buildTripPlan } from "@/lib/trip-plan";
 import { toTitleCase } from "@/lib/utils";
 import { buildVisitAdvisory } from "@/lib/visit-advisory";
 import {
@@ -247,6 +249,27 @@ export default async function SuburbPage({ params }: Props) {
           key: String(report.id),
           reportType: report.reportType,
         }));
+  const tripPlan = buildTripPlan({
+    incidents: approvedIncidents,
+    locations: branches.map((branch) => ({
+      address: branch.address,
+      bankName: branch.bankName,
+      feeRating: branch.feeRating,
+      id: branch.id,
+      name: branch.name,
+      openingHours: branch.openingHours,
+      status: branch.status,
+      type: branch.type as "branch" | "atm",
+    })),
+    nearbySuburbs: nearby.map((item) => ({
+      name: toTitleCase(item.name),
+      postcode: item.postcode,
+      slug: item.slug,
+      stateSlug: item.stateSlug,
+    })),
+    placeLabel: `${displayName}, ${abbr}`,
+    scope: "suburb",
+  });
 
   return (
     <div>
@@ -344,6 +367,14 @@ export default async function SuburbPage({ params }: Props) {
           <VisitAdvisoryCard advisory={suburbAdvisory} evidenceLabel="Before You Visit" />
         </div>
       </section>
+
+      {tripPlan && (
+        <section className="border-b border-white/5 bg-black px-6 py-10 sm:px-10 sm:py-12">
+          <div className="mx-auto max-w-[1000px]">
+            <TripPlanCard plan={tripPlan} />
+          </div>
+        </section>
+      )}
 
       {/* Open Branches — FIRST, this is what people came for */}
       {openBranches.length > 0 && (

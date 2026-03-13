@@ -3,6 +3,7 @@ import { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { StructuredData } from "@/components/structured-data";
+import { TripPlanCard } from "@/components/trip-plan-card";
 import { 
   getAtmsForSuburb,
   getRecentReportsForBranchIds,
@@ -20,8 +21,13 @@ import {
   buildItemListSchema,
   buildMetadata,
 } from "@/lib/seo";
+import { buildTripPlan } from "@/lib/trip-plan";
 import { toTitleCase } from "@/lib/utils";
 import { buildVisitAdvisory } from "@/lib/visit-advisory";
+import {
+  listApprovedCommunityIncidentSummaries,
+  supabaseReportsConfigured,
+} from "@/lib/reports/supabase";
 
 interface PageProps {
   params: Promise<{ suburbSlug: string }>;
@@ -53,10 +59,18 @@ export default async function ATMSuburbPage({ params }: PageProps) {
   if (!suburb) notFound();
 
   const atms = await getAtmsForSuburb(suburb.slug);
-  const recentReports = await getRecentReportsForBranchIds(
-    atms.map((atm) => atm.id),
-    12
-  );
+  const [recentReports, approvedIncidents] = await Promise.all([
+    getRecentReportsForBranchIds(
+      atms.map((atm) => atm.id),
+      12
+    ),
+    supabaseReportsConfigured()
+      ? listApprovedCommunityIncidentSummaries({
+          branchIds: atms.map((atm) => atm.id),
+          limit: 8,
+        })
+      : Promise.resolve([]),
+  ]);
   const displayName = toTitleCase(suburb.name);
   const seo = generateATMSEOContent(displayName, atms.length);
   const banksWithAtms = Array.from(
@@ -154,6 +168,20 @@ export default async function ATMSuburbPage({ params }: PageProps) {
     fallbackLocations: banksWithAtms.length > 0 ? Math.max(banksWithAtms.length - 1, 0) : 0,
     recentReports,
   });
+  const tripPlan = buildTripPlan({
+    incidents: approvedIncidents,
+    locations: atms.map((atm) => ({
+      address: atm.address,
+      bankName: atm.bankName,
+      feeRating: atm.feeRating,
+      id: atm.id,
+      name: atm.name,
+      status: atm.status,
+      type: "atm",
+    })),
+    placeLabel: displayName,
+    scope: "atm",
+  });
 
   return (
     <div className="bg-black text-white">
@@ -186,6 +214,14 @@ export default async function ATMSuburbPage({ params }: PageProps) {
           <VisitAdvisoryCard advisory={atmAdvisory} evidenceLabel="ATM Trip Readiness" />
         </div>
       </section>
+
+      {tripPlan && (
+        <section className="border-b border-white/10 px-6 py-10 sm:px-10 sm:py-12">
+          <div className="mx-auto max-w-[900px]">
+            <TripPlanCard eyebrow="ATM Route Plan" plan={tripPlan} />
+          </div>
+        </section>
+      )}
 
       <section className="px-6 py-12 sm:py-16">
         <div className="mx-auto max-w-[900px]">

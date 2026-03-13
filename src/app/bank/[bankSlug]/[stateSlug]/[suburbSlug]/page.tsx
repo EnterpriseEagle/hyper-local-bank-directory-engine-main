@@ -3,6 +3,7 @@ import { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { StructuredData } from "@/components/structured-data";
+import { TripPlanCard } from "@/components/trip-plan-card";
 import {
   getBankBySlug,
   getBankBranchesInSuburb,
@@ -21,8 +22,13 @@ import {
   buildItemListSchema,
   buildMetadata,
 } from "@/lib/seo";
+import { buildTripPlan } from "@/lib/trip-plan";
 import { toTitleCase } from "@/lib/utils";
 import { buildVisitAdvisory } from "@/lib/visit-advisory";
+import {
+  listApprovedCommunityIncidentSummaries,
+  supabaseReportsConfigured,
+} from "@/lib/reports/supabase";
 
 interface PageProps {
   params: Promise<{ bankSlug: string; stateSlug: string; suburbSlug: string }>;
@@ -67,10 +73,18 @@ export default async function BankSuburbPage({ params }: PageProps) {
 
   const displayName = toTitleCase(suburb.name);
   const branches = await getBankBranchesInSuburb(bank.id, suburb.slug);
-  const recentReports = await getRecentReportsForBranchIds(
-    branches.map((branch) => branch.id),
-    12
-  );
+  const [recentReports, approvedIncidents] = await Promise.all([
+    getRecentReportsForBranchIds(
+      branches.map((branch) => branch.id),
+      12
+    ),
+    supabaseReportsConfigured()
+      ? listApprovedCommunityIncidentSummaries({
+          branchIds: branches.map((branch) => branch.id),
+          limit: 8,
+        })
+      : Promise.resolve([]),
+  ]);
   const openBranchesCount = branches.filter(b => b.type === 'branch' && b.status === 'open').length;
   const atmsCount = branches.filter(b => b.type === 'atm').length;
   const closedCount = branches.filter(b => b.status === 'closed').length;
@@ -147,6 +161,20 @@ export default async function BankSuburbPage({ params }: PageProps) {
     fallbackLocations: Math.max(branches.length - 1, 0),
     recentReports,
   });
+  const tripPlan = buildTripPlan({
+    incidents: approvedIncidents,
+    locations: branches.map((branch) => ({
+      address: branch.address,
+      feeRating: branch.feeRating,
+      id: branch.id,
+      name: branch.name,
+      openingHours: branch.openingHours,
+      status: branch.status,
+      type: branch.type as "branch" | "atm",
+    })),
+    placeLabel: `${bank.name} in ${displayName}`,
+    scope: "bank",
+  });
 
   return (
     <div className="bg-black text-white">
@@ -179,6 +207,14 @@ export default async function BankSuburbPage({ params }: PageProps) {
           <VisitAdvisoryCard advisory={bankAdvisory} evidenceLabel="Before You Visit This Bank" />
         </div>
       </section>
+
+      {tripPlan && (
+        <section className="border-b border-white/10 px-6 py-10 sm:px-10 sm:py-12">
+          <div className="mx-auto max-w-[900px]">
+            <TripPlanCard eyebrow="Bank Visit Plan" plan={tripPlan} />
+          </div>
+        </section>
+      )}
 
       <section className="px-6 py-12 sm:py-16">
         <div className="mx-auto max-w-[900px]">
