@@ -6,6 +6,7 @@ import { reportEvidenceEnabled, statusReportsEnabled } from "@/lib/feature-flags
 interface StatusReporterProps {
   branches?: { id: number; name: string; type: string; status: string }[];
   branchId?: number;
+  branchType?: string;
   suburbId: number;
   suburbName?: string;
 }
@@ -14,10 +15,17 @@ const REPORT_TYPES = [
   { value: "working", label: "Working", emoji: "✅", color: "emerald" },
   { value: "atm_empty", label: "ATM Empty", emoji: "❌", color: "red" },
   { value: "branch_closed", label: "Branch Closed", emoji: "🚫", color: "red" },
+  { value: "closure_notice", label: "Closure Notice", emoji: "📌", color: "amber" },
   { value: "long_queue", label: "Long Queue", emoji: "⏳", color: "amber" },
 ];
 
-export function StatusReporter({ branches, branchId, suburbId, suburbName }: StatusReporterProps) {
+export function StatusReporter({
+  branches,
+  branchId,
+  branchType,
+  suburbId,
+  suburbName,
+}: StatusReporterProps) {
   const singleBranchMode = !!branchId;
   const [selectedBranch, setSelectedBranch] = useState<number | null>(branchId ?? null);
   const [submitting, setSubmitting] = useState(false);
@@ -57,6 +65,16 @@ export function StatusReporter({ branches, branchId, suburbId, suburbName }: Sta
   }
 
   const activeBranches = branches?.filter((b) => b.status !== "closed") ?? [];
+  const selectedBranchType = singleBranchMode
+    ? branchType ?? null
+    : activeBranches.find((branch) => branch.id === selectedBranch)?.type ?? null;
+  const visibleReportTypes = REPORT_TYPES.filter((report) => {
+    if (report.value !== "closure_notice") {
+      return true;
+    }
+
+    return selectedBranchType !== "atm";
+  });
 
   async function handleReport(reportType: string) {
     if (!selectedBranch) {
@@ -128,7 +146,7 @@ export function StatusReporter({ branches, branchId, suburbId, suburbName }: Sta
           </h3>
           {suburbName && (
             <p className="text-[12px] text-white/30 mt-0.5">
-              No login required. Help {suburbName} stay informed.
+              No login. Photo proof helps {suburbName} stay accurate.
             </p>
           )}
         </div>
@@ -193,7 +211,7 @@ export function StatusReporter({ branches, branchId, suburbId, suburbName }: Sta
                   value={note}
                   onChange={(e) => setNote(e.target.value.slice(0, 500))}
                   rows={3}
-                  placeholder="What did you see? Example: ATM screen said out of service and branch shutters were down."
+                  placeholder="What did you see? Example: ATM screen said out of service, or a branch had a notice saying it will close next month."
                   className="w-full resize-none bg-white/[0.03] border border-white/10 px-4 py-3 text-[13px] font-light text-white placeholder:text-white/20 focus:outline-none focus:border-white/25 transition-colors duration-300"
                 />
                 <p className="mt-2 text-[11px] text-white/20">
@@ -214,7 +232,7 @@ export function StatusReporter({ branches, branchId, suburbId, suburbName }: Sta
                   className="block w-full text-[12px] text-white/60 file:mr-4 file:border-0 file:bg-white/10 file:px-4 file:py-3 file:text-[11px] file:uppercase file:tracking-[0.18em] file:text-white hover:file:bg-white/15"
                 />
                 <p className="mt-2 text-[11px] text-white/20">
-                  Snap a sign, ATM screen, or storefront. Max 8MB.
+                  Snap a sign, ATM screen, closure notice, or storefront. Max 8MB.
                 </p>
                 {photo && (
                   <p className="mt-2 text-[12px] text-white/45">
@@ -230,7 +248,7 @@ export function StatusReporter({ branches, branchId, suburbId, suburbName }: Sta
             Report Status
           </label>
           <div className="grid grid-cols-2 gap-px bg-white/5">
-            {REPORT_TYPES.map((rt) => (
+            {visibleReportTypes.map((rt) => (
               <button
                 key={rt.value}
                 onClick={() => handleReport(rt.value)}

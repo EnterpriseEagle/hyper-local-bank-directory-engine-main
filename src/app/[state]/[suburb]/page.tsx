@@ -13,6 +13,7 @@ import {
 } from "@/lib/data";
 import { StructuredData } from "@/components/structured-data";
 import { StatusReporter } from "@/components/status-reporter";
+import { VisitAdvisoryCard } from "@/components/visit-advisory";
 import { SwitchStickyBar } from "@/components/switch-banner";
 import { InlineOfferCard } from "@/components/inline-offer";
 import {
@@ -24,6 +25,7 @@ import {
   buildMetadata,
 } from "@/lib/seo";
 import { toTitleCase } from "@/lib/utils";
+import { buildVisitAdvisory } from "@/lib/visit-advisory";
 
 interface Props {
   params: Promise<{ state: string; suburb: string }>;
@@ -48,7 +50,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   return buildMetadata({
     title: `Banks and ATMs in ${displayName}, ${abbr} ${suburb.postcode} - Live Status`,
-    description: `Find bank branches, ATMs, and live service status in ${displayName}, ${stateName} ${suburb.postcode}. Report ATM outages, branch closures, and long queues. Updated by the community.`,
+    description: `Find bank branches, ATMs, and live service status in ${displayName}, ${stateName} ${suburb.postcode}. Report ATM outages, closure notices, branch closures, and long queues. Updated by the community.`,
     path: `/${state}/${suburb.slug}`,
     keywords: [
       `${displayName} bank branches`,
@@ -56,7 +58,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       `${displayName} ${abbr} banks`,
       `${displayName} bank status`,
     ],
-    openGraphDescription: `Live crowd-sourced status for banks and ATMs in ${displayName}. Report outages, check service status, and find nearby alternatives.`,
+    openGraphDescription: `Live crowd-sourced status for banks and ATMs in ${displayName}. Report outages, closure notices, check service status, and find nearby alternatives.`,
   });
 }
 
@@ -77,6 +79,7 @@ const REPORT_LABELS: Record<string, { label: string; icon: string; color: string
   working: { label: "Working", icon: "✅", color: "text-emerald-400" },
   atm_empty: { label: "ATM Empty", icon: "❌", color: "text-red-400" },
   branch_closed: { label: "Branch Closed", icon: "❌", color: "text-red-400" },
+  closure_notice: { label: "Closure Notice", icon: "📌", color: "text-amber-400" },
   long_queue: { label: "Long Queue", icon: "⏳", color: "text-amber-400" },
 };
 
@@ -144,7 +147,7 @@ export default async function SuburbPage({ params }: Props) {
     },
     {
       q: `Can I report an ATM outage or long queue in ${displayName}?`,
-      a: `Yes. The status reporter on this page lets locals submit anonymous updates for ATM outages, branch closures, and long queues so the suburb page stays current.`,
+      a: `Yes. The status reporter on this page lets locals submit anonymous updates for ATM outages, branch closures, closure notices, and long queues so the suburb page stays current.`,
     },
     {
       q: `Where do I find alternatives if a branch in ${displayName} is closed?`,
@@ -230,6 +233,14 @@ export default async function SuburbPage({ params }: Props) {
   );
 
   const faqSchema = buildFAQSchema(faq);
+  const suburbAdvisory = buildVisitAdvisory({
+    scope: "suburb",
+    placeLabel: `${displayName}, ${abbr}`,
+    openLocations: openBranches.length + atms.length,
+    closedLocations: closedBranches.length,
+    fallbackLocations: nearby.length,
+    recentReports,
+  });
 
   return (
     <div>
@@ -319,6 +330,12 @@ export default async function SuburbPage({ params }: Props) {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      <section className="border-b border-white/5 bg-black px-6 py-10 sm:px-10 sm:py-12">
+        <div className="mx-auto max-w-[1000px]">
+          <VisitAdvisoryCard advisory={suburbAdvisory} evidenceLabel="Before You Visit" />
         </div>
       </section>
 

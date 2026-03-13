@@ -54,7 +54,7 @@ export const statusReports = sqliteTable("status_reports", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   branchId: integer("branch_id").notNull().references(() => branches.id),
   suburbId: integer("suburb_id").notNull().references(() => suburbs.id),
-  reportType: text("report_type").notNull(), // "working" | "atm_empty" | "branch_closed" | "long_queue"
+  reportType: text("report_type").notNull(), // "working" | "atm_empty" | "branch_closed" | "closure_notice" | "long_queue"
   createdAt: text("created_at").notNull(),
   ipHash: text("ip_hash"), // anonymized
 });

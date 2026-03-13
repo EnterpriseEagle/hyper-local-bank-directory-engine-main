@@ -2,6 +2,7 @@ export const VALID_REPORT_TYPES = [
   "working",
   "atm_empty",
   "branch_closed",
+  "closure_notice",
   "long_queue",
 ] as const;
 

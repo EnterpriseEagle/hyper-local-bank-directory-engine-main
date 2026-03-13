@@ -214,6 +214,7 @@ export async function getRecentReportsForSuburb(suburbId: number, limit = 10) {
   return db
     .select({
       id: statusReports.id,
+      branchId: statusReports.branchId,
       reportType: statusReports.reportType,
       createdAt: statusReports.createdAt,
       branchName: branches.name,
@@ -222,6 +223,27 @@ export async function getRecentReportsForSuburb(suburbId: number, limit = 10) {
     .from(statusReports)
     .innerJoin(branches, eq(statusReports.branchId, branches.id))
     .where(eq(statusReports.suburbId, suburbId))
+    .orderBy(desc(statusReports.createdAt))
+    .limit(limit);
+}
+
+export async function getRecentReportsForBranchIds(branchIds: number[], limit = 10) {
+  if (branchIds.length === 0) {
+    return [];
+  }
+
+  return db
+    .select({
+      id: statusReports.id,
+      branchId: statusReports.branchId,
+      reportType: statusReports.reportType,
+      createdAt: statusReports.createdAt,
+      branchName: branches.name,
+      branchType: branches.type,
+    })
+    .from(statusReports)
+    .innerJoin(branches, eq(statusReports.branchId, branches.id))
+    .where(inArray(statusReports.branchId, branchIds))
     .orderBy(desc(statusReports.createdAt))
     .limit(limit);
 }
@@ -366,6 +388,10 @@ export async function getLiveOutageStats() {
     .select({ count: sql<number>`count(*)` })
     .from(statusReports)
     .where(eq(statusReports.reportType, "branch_closed"));
+  const [closureNotice] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(statusReports)
+    .where(eq(statusReports.reportType, "closure_notice"));
   const [longQueue] = await db
     .select({ count: sql<number>`count(*)` })
     .from(statusReports)
@@ -378,6 +404,7 @@ export async function getLiveOutageStats() {
   return {
     atmEmpty: atmEmpty.count,
     branchClosed: branchClosed.count,
+    closureNotice: closureNotice.count,
     longQueue: longQueue.count,
     working: working.count,
   };

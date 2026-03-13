@@ -243,7 +243,10 @@ export async function getInsightPageData(slug: string): Promise<InsightPageData 
         getOutageHotspots(6),
       ]);
       const nonWorkingSignals =
-        outageStats.atmEmpty + outageStats.branchClosed + outageStats.longQueue;
+        outageStats.atmEmpty +
+        outageStats.branchClosed +
+        outageStats.closureNotice +
+        outageStats.longQueue;
       const hotspot = hotspots[0];
 
       return {
@@ -269,10 +272,11 @@ export async function getInsightPageData(slug: string): Promise<InsightPageData 
           {
             title: "Check the local risk signals before you leave",
             body: [
-              "The strongest pre-trip signals are ATM empty reports, branch closed reports, long queue reports, and nearby alternatives in the same suburb or next suburb over.",
+              "The strongest pre-trip signals are ATM empty reports, closure notices, branch closed reports, long queue reports, and nearby alternatives in the same suburb or next suburb over.",
             ],
             bullets: [
               `${outageStats.atmEmpty.toLocaleString()} ATM empty reports tracked`,
+              `${outageStats.closureNotice.toLocaleString()} closure notice reports tracked`,
               `${outageStats.branchClosed.toLocaleString()} branch closed reports tracked`,
               `${outageStats.longQueue.toLocaleString()} long queue reports tracked`,
               `${outageStats.working.toLocaleString()} working-status confirmations tracked`,

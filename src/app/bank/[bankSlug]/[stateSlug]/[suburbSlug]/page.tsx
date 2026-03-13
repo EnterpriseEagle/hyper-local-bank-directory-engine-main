@@ -6,11 +6,13 @@ import { StructuredData } from "@/components/structured-data";
 import {
   getBankBySlug,
   getBankBranchesInSuburb,
+  getRecentReportsForBranchIds,
   getSuburbBySlugInState,
   STATE_NAMES,
 } from "@/lib/data";
 import { generateBankSEOContent } from "@/lib/seo-content";
 import { StatusReporter } from "@/components/status-reporter";
+import { VisitAdvisoryCard } from "@/components/visit-advisory";
 import {
   absoluteUrl,
   buildBreadcrumbSchema,
@@ -20,6 +22,7 @@ import {
   buildMetadata,
 } from "@/lib/seo";
 import { toTitleCase } from "@/lib/utils";
+import { buildVisitAdvisory } from "@/lib/visit-advisory";
 
 interface PageProps {
   params: Promise<{ bankSlug: string; stateSlug: string; suburbSlug: string }>;
@@ -64,6 +67,10 @@ export default async function BankSuburbPage({ params }: PageProps) {
 
   const displayName = toTitleCase(suburb.name);
   const branches = await getBankBranchesInSuburb(bank.id, suburb.slug);
+  const recentReports = await getRecentReportsForBranchIds(
+    branches.map((branch) => branch.id),
+    12
+  );
   const openBranchesCount = branches.filter(b => b.type === 'branch' && b.status === 'open').length;
   const atmsCount = branches.filter(b => b.type === 'atm').length;
   const closedCount = branches.filter(b => b.status === 'closed').length;
@@ -132,6 +139,14 @@ export default async function BankSuburbPage({ params }: PageProps) {
       url: absoluteUrl(`/bank/${bank.slug}`),
     },
   }));
+  const bankAdvisory = buildVisitAdvisory({
+    scope: "bank",
+    placeLabel: `${bank.name} in ${displayName}`,
+    openLocations: branches.filter((branch) => branch.status === "open").length,
+    closedLocations: closedCount,
+    fallbackLocations: Math.max(branches.length - 1, 0),
+    recentReports,
+  });
 
   return (
     <div className="bg-black text-white">
@@ -156,6 +171,12 @@ export default async function BankSuburbPage({ params }: PageProps) {
           <p className="max-w-[600px] text-[16px] font-light leading-relaxed text-white/50">
             {seo.intro}
           </p>
+        </div>
+      </section>
+
+      <section className="border-b border-white/10 px-6 py-10 sm:px-10 sm:py-12">
+        <div className="mx-auto max-w-[900px]">
+          <VisitAdvisoryCard advisory={bankAdvisory} evidenceLabel="Before You Visit This Bank" />
         </div>
       </section>
 
@@ -210,7 +231,7 @@ export default async function BankSuburbPage({ params }: PageProps) {
                          <p className="text-[10px] uppercase tracking-[0.2em] text-white/30 mb-4 font-medium">
                             Report Live Status
                          </p>
-                         <StatusReporter branchId={b.id} suburbId={suburb.id} />
+                         <StatusReporter branchId={b.id} branchType="branch" suburbId={suburb.id} />
                       </div>
                     </div>
                   ))}

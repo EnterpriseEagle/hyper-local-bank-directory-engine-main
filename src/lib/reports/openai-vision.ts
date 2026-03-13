@@ -81,7 +81,7 @@ export async function reviewPhotoWithVision(input: {
                 `Location: ${input.branch.bankName} ${input.branch.branchName}, ${input.branch.address}, ${input.branch.suburbName} ${input.branch.postcode}`,
                 `Metadata summary: ${input.photo.metadata.summary}`,
                 "Return structured JSON only.",
-                "Look for bank branding, ATM error screens, closure signs, shutters, queue length, and whether the image appears like a real camera capture versus screenshot, render, or heavily edited media.",
+                "Look for bank branding, ATM error screens, closure signs, future closure notices, shutters, queue length, and whether the image appears like a real camera capture versus screenshot, render, or heavily edited media.",
               ].join("\n"),
             },
             {

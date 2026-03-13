@@ -15,6 +15,11 @@ const POSITIVE_KEYWORDS = [
 
 const NEGATIVE_KEYWORDS = [
   "closed",
+  "closure notice",
+  "closing soon",
+  "closing",
+  "final day",
+  "notice posted",
   "shut",
   "out of service",
   "empty",
@@ -57,7 +62,9 @@ export function assessIncomingReport(
   if (note.length >= 25) confidence += 0.15;
   if (note.length >= 80) confidence += 0.05;
 
-  if (payload.reportType === "branch_closed") confidence += 0.1;
+  if (payload.reportType === "branch_closed" || payload.reportType === "closure_notice") {
+    confidence += 0.1;
+  }
   if (payload.reportType === "working") confidence += 0.05;
 
   if (payload.reportType === "working") {

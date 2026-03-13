@@ -16,6 +16,7 @@ const REPORT_LABELS: Record<string, string> = {
   working: "Working",
   atm_empty: "ATM empty",
   branch_closed: "Branch closed",
+  closure_notice: "Closure notice",
   long_queue: "Long queue",
 };
 

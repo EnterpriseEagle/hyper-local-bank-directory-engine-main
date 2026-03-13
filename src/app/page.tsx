@@ -24,7 +24,7 @@ import {
 export const metadata = buildMetadata({
   title: "BANK NEAR ME® - Is Your Bank Actually Working? Live ATM & Branch Status",
   description:
-    "Search Australian suburbs to find live bank branch and ATM status, recent closures, outage reports, and queue updates before you make the trip.",
+    "Search Australian suburbs to find live bank branch and ATM status, closure notices, recent closures, outage reports, and queue updates before you make the trip.",
   path: "/",
   keywords: [
     "bank near me live tracker",
@@ -39,13 +39,14 @@ const REPORT_LABELS: Record<string, { label: string; icon: string; color: string
   working: { label: "Working", icon: "✅", color: "text-emerald-400" },
   atm_empty: { label: "ATM Empty", icon: "❌", color: "text-red-400" },
   branch_closed: { label: "Branch Closed", icon: "❌", color: "text-red-400" },
+  closure_notice: { label: "Closure Notice", icon: "📌", color: "text-amber-400" },
   long_queue: { label: "Long Queue", icon: "⏳", color: "text-amber-400" },
 };
 
 const HOME_FAQ = [
   {
     q: "How do I find a working bank branch near me in Australia?",
-    a: "Search by suburb or postcode to see local branch and ATM listings, recent closure signals, and live community reports before you visit.",
+    a: "Search by suburb or postcode to see local branch and ATM listings, recent closure signals, live community reports, and a before-you-visit recommendation before you head out.",
   },
   {
     q: "Which Australian banks are covered on BANK NEAR ME?",
@@ -53,11 +54,11 @@ const HOME_FAQ = [
   },
   {
     q: "How current are the ATM and branch status updates?",
-    a: "Location data is paired with fresh community reports for outages, closures, and long queues so each suburb page reflects current ground-level signals, not just static directory data.",
+    a: "Location data is paired with fresh community reports for outages, closure notices, permanent closures, and long queues so each suburb page reflects current ground-level signals, not just static directory data.",
   },
   {
     q: "Where can I track recent bank branch closures in Australia?",
-    a: "The closures tracker highlights recent branch shutdowns and links directly to suburb pages where you can find nearby alternatives and live service status.",
+    a: "The closures tracker highlights recent branch shutdowns, while suburb pages surface new closure notices and other local warnings before official directories catch up.",
   },
 ];
 
@@ -86,11 +87,7 @@ export default async function HomePage() {
       getOutageHotspots(6),
     ]);
 
-  const totalReports =
-    outageStats.atmEmpty +
-    outageStats.branchClosed +
-    outageStats.longQueue +
-    outageStats.working;
+  const totalReports = stats.totalReports;
 
   const homeSchema = buildCollectionPageSchema({
     name: "Australian bank branches, ATMs and live status by suburb",
@@ -183,8 +180,8 @@ export default async function HomePage() {
 
             <p className="mb-5 max-w-[560px] text-[15px] font-light leading-[1.6] text-white/45">
               Search {stats.suburbs.toLocaleString()} Australian suburbs to check if nearby
-              bank branches and ATMs are open, out of cash, or recently closed before
-              you make the trip.
+              bank branches and ATMs are open, out of cash, showing closure notices,
+              or recently closed before you make the trip.
             </p>
 
             {/* Search Bar */}
@@ -446,7 +443,7 @@ export default async function HomePage() {
                 {
                   step: "02",
                   title: "Report Status",
-                  desc: "One tap. No login. Report if an ATM is empty, branch closed, or queues are long.",
+                  desc: "One tap. No login. Report broken ATMs, closure notices, branch closures, or long queues.",
                   icon: "📡",
                 },
                 {

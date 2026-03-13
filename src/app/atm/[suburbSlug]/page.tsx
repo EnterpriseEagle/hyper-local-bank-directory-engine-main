@@ -5,11 +5,13 @@ import { notFound } from "next/navigation";
 import { StructuredData } from "@/components/structured-data";
 import { 
   getAtmsForSuburb,
+  getRecentReportsForBranchIds,
   getSuburbBySlug,
   STATE_NAMES 
 } from "@/lib/data";
 import { generateATMSEOContent } from "@/lib/seo-content";
 import { StatusReporter } from "@/components/status-reporter";
+import { VisitAdvisoryCard } from "@/components/visit-advisory";
 import {
   absoluteUrl,
   buildBreadcrumbSchema,
@@ -19,6 +21,7 @@ import {
   buildMetadata,
 } from "@/lib/seo";
 import { toTitleCase } from "@/lib/utils";
+import { buildVisitAdvisory } from "@/lib/visit-advisory";
 
 interface PageProps {
   params: Promise<{ suburbSlug: string }>;
@@ -50,6 +53,10 @@ export default async function ATMSuburbPage({ params }: PageProps) {
   if (!suburb) notFound();
 
   const atms = await getAtmsForSuburb(suburb.slug);
+  const recentReports = await getRecentReportsForBranchIds(
+    atms.map((atm) => atm.id),
+    12
+  );
   const displayName = toTitleCase(suburb.name);
   const seo = generateATMSEOContent(displayName, atms.length);
   const banksWithAtms = Array.from(
@@ -139,6 +146,14 @@ export default async function ATMSuburbPage({ params }: PageProps) {
       longitude: atm.lng,
     },
   }));
+  const atmAdvisory = buildVisitAdvisory({
+    scope: "atm",
+    placeLabel: `ATMs in ${displayName}`,
+    openLocations: atms.filter((atm) => atm.status === "open").length,
+    closedLocations: atms.filter((atm) => atm.status === "closed").length,
+    fallbackLocations: banksWithAtms.length > 0 ? Math.max(banksWithAtms.length - 1, 0) : 0,
+    recentReports,
+  });
 
   return (
     <div className="bg-black text-white">
@@ -166,6 +181,12 @@ export default async function ATMSuburbPage({ params }: PageProps) {
         </div>
       </section>
 
+      <section className="border-b border-white/10 px-6 py-10 sm:px-10 sm:py-12">
+        <div className="mx-auto max-w-[900px]">
+          <VisitAdvisoryCard advisory={atmAdvisory} evidenceLabel="ATM Trip Readiness" />
+        </div>
+      </section>
+
       <section className="px-6 py-12 sm:py-16">
         <div className="mx-auto max-w-[900px]">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -189,7 +210,7 @@ export default async function ATMSuburbPage({ params }: PageProps) {
                    <p className="text-[10px] uppercase tracking-[0.2em] text-white/30 mb-4 font-medium">
                       Report Status
                    </p>
-                   <StatusReporter branchId={atm.id} suburbId={suburb.id} />
+                   <StatusReporter branchId={atm.id} branchType="atm" suburbId={suburb.id} />
                 </div>
               </div>
             ))}

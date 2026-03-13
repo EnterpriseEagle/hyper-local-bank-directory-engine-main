@@ -67,7 +67,7 @@ export async function GET() {
     "## Notes",
     "- State and suburb URLs are canonical public pages.",
     "- Query-string search result pages should be treated as temporary discovery pages, not canonical knowledge pages.",
-    "- Community reports indicate local conditions such as ATM empty, branch closed, long queue, or working status.",
+    "- Community reports indicate local conditions such as ATM empty, closure notice, branch closed, long queue, or working status.",
   ];
 
   return new Response(`${lines.join("\n")}\n`, {
