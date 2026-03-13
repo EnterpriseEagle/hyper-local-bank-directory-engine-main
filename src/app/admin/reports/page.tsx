@@ -1,14 +1,25 @@
 import { reportsAdminConfigured, hasReportsAdminSession } from "@/lib/reports/auth";
+import { SignalBadges } from "@/components/signal-badges";
 import {
   createSignedReportPhotoUrl,
   listCommunityReportsByStatus,
   supabaseReportsConfigured,
 } from "@/lib/reports/supabase";
 import { getBranchModerationTargets } from "@/lib/data";
+import {
+  buildIncidentBadges,
+  getReporterTrustSnapshot,
+  groupCommunityReportsIntoIncidents,
+} from "@/lib/reports/trust";
 
 export const dynamic = "force-dynamic";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
+type DecoratedReport = {
+  photoUrl: string | null;
+  report: Awaited<ReturnType<typeof listCommunityReportsByStatus>>[number];
+  target: Awaited<ReturnType<typeof getBranchModerationTargets>>[number] | undefined;
+};
 
 function shortenHash(hash: string | null) {
   if (!hash) {
@@ -16,6 +27,13 @@ function shortenHash(hash: string | null) {
   }
 
   return `${hash.slice(0, 10)}...${hash.slice(-6)}`;
+}
+
+function formatReportLabel(reportType: string) {
+  return reportType
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
 }
 
 async function getQueueData() {
@@ -30,7 +48,7 @@ async function getQueueData() {
   const branchTargets = await getBranchModerationTargets(branchIds);
   const branchMap = new Map(branchTargets.map((target) => [target.branchId, target]));
 
-  const decorate = async (report: (typeof pending)[number]) => {
+  const decorate = async (report: (typeof pending)[number]): Promise<DecoratedReport> => {
     const target = branchMap.get(report.branch_id);
     const photoUrl =
       report.photo_path && report.photo_bucket
@@ -44,9 +62,20 @@ async function getQueueData() {
     };
   };
 
+  const decoratedPending = await Promise.all(pending.map(decorate));
+  const decoratedReviewed = await Promise.all(reviewed.map(decorate));
+  const pendingMap = new Map(decoratedPending.map((item) => [item.report.id, item]));
+  const pendingClusters = groupCommunityReportsIntoIncidents(pending).map((cluster) => ({
+    badges: buildIncidentBadges(cluster, "admin"),
+    items: cluster.reports
+      .map((report) => pendingMap.get(report.id))
+      .filter((item): item is DecoratedReport => Boolean(item)),
+  }));
+
   return {
-    pending: await Promise.all(pending.map(decorate)),
-    reviewed: await Promise.all(reviewed.map(decorate)),
+    pending: decoratedPending,
+    pendingClusters,
+    reviewed: decoratedReviewed,
   };
 }
 
@@ -112,7 +141,7 @@ export default async function AdminReportsPage({
     );
   }
 
-  const { pending, reviewed } = await getQueueData();
+  const { pending, pendingClusters, reviewed } = await getQueueData();
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-12 text-white">
@@ -144,143 +173,57 @@ export default async function AdminReportsPage({
       <section className="mt-12">
         <div className="flex items-center justify-between gap-4">
           <h2 className="font-serif text-2xl font-light">Pending Review</h2>
-          <p className="text-sm text-white/40">{pending.length} waiting</p>
+          <p className="text-sm text-white/40">
+            {pendingClusters.length} incident{pendingClusters.length === 1 ? "" : "s"} • {pending.length} evidence item{pending.length === 1 ? "" : "s"}
+          </p>
         </div>
 
         <div className="mt-6 grid gap-6">
-          {pending.length === 0 ? (
+          {pendingClusters.length === 0 ? (
             <div className="border border-white/10 bg-white/[0.02] px-6 py-8 text-sm text-white/50">
               No pending reports right now.
             </div>
           ) : (
-            pending.map(({ report, target, photoUrl }) => (
-              <article
-                key={report.id}
-                className="grid gap-5 border border-white/10 bg-white/[0.02] p-6 lg:grid-cols-[1.4fr_0.8fr]"
-              >
-                <div>
-                  <p className="text-[11px] uppercase tracking-[0.2em] text-white/35">
-                    {report.report_type.replace("_", " ")} • {target?.branchType ?? "location"}
-                  </p>
-                  <h3 className="mt-2 font-serif text-2xl font-light text-white">
-                    {target?.branchName ?? `Branch ${report.branch_id}`}
-                  </h3>
-                  <p className="mt-2 text-sm text-white/55">
-                    {target
-                      ? `${target.bankName} • ${target.address}, ${target.suburbName} ${target.postcode}`
-                      : `Suburb ${report.suburb_id}`}
-                  </p>
-                  <p className="mt-4 text-sm leading-relaxed text-white/70">
-                    {report.note || "No reporter note supplied."}
-                  </p>
-                  <div className="mt-4 flex flex-wrap gap-3 text-xs text-white/35">
-                    <span>Agent: {report.agent_recommendation ?? "review"}</span>
-                    <span>
-                      Confidence:{" "}
-                      {report.agent_confidence != null
-                        ? `${Math.round(report.agent_confidence * 100)}%`
-                        : "n/a"}
-                    </span>
-                    <span>{new Date(report.submitted_at).toLocaleString("en-AU")}</span>
-                  </div>
-                  <div className="mt-4 grid grid-cols-2 gap-3 text-xs text-white/45 sm:grid-cols-3">
-                    <div className="border border-white/8 bg-black/20 px-3 py-2">
-                      <p className="text-[10px] uppercase tracking-[0.18em] text-white/25">
-                        Device
-                      </p>
-                      <p className="mt-1">
-                        {report.camera_make || report.camera_model
-                          ? `${report.camera_make ?? ""} ${report.camera_model ?? ""}`.trim()
-                          : "Unknown"}
-                      </p>
-                    </div>
-                    <div className="border border-white/8 bg-black/20 px-3 py-2">
-                      <p className="text-[10px] uppercase tracking-[0.18em] text-white/25">
-                        Metadata
-                      </p>
-                      <p className="mt-1">{report.photo_metadata_status ?? "none"}</p>
-                    </div>
-                    <div className="border border-white/8 bg-black/20 px-3 py-2">
-                      <p className="text-[10px] uppercase tracking-[0.18em] text-white/25">
-                        Captured
-                      </p>
-                      <p className="mt-1">
-                        {report.captured_at
-                          ? new Date(report.captured_at).toLocaleString("en-AU")
-                          : "Unknown"}
-                      </p>
-                    </div>
-                    <div className="border border-white/8 bg-black/20 px-3 py-2">
-                      <p className="text-[10px] uppercase tracking-[0.18em] text-white/25">
-                        GPS
-                      </p>
-                      <p className="mt-1">
-                        {report.capture_distance_km != null
-                          ? `${report.capture_distance_km.toFixed(1)}km from branch`
-                          : report.capture_lat != null && report.capture_lng != null
-                          ? "Present"
-                          : "Missing"}
-                      </p>
-                    </div>
-                    <div className="border border-white/8 bg-black/20 px-3 py-2">
-                      <p className="text-[10px] uppercase tracking-[0.18em] text-white/25">
-                        Software
-                      </p>
-                      <p className="mt-1">{report.camera_software || "Camera default"}</p>
-                    </div>
-                    <div className="border border-white/8 bg-black/20 px-3 py-2">
-                      <p className="text-[10px] uppercase tracking-[0.18em] text-white/25">
-                        Hash
-                      </p>
-                      <p className="mt-1">{shortenHash(report.photo_sha256)}</p>
-                    </div>
-                  </div>
-                  {report.photo_metadata_summary && (
-                    <p className="mt-4 border border-white/8 bg-black/20 px-4 py-3 text-sm text-white/55">
-                      {report.photo_metadata_summary}
-                    </p>
-                  )}
-                  {report.vision_summary && (
-                    <p className="mt-4 border border-blue-500/10 bg-blue-500/5 px-4 py-3 text-sm text-white/55">
-                      Vision review ({report.vision_model || "model"}): {report.vision_summary}
-                      {report.vision_authenticity
-                        ? ` Authenticity ${report.vision_authenticity}.`
-                        : ""}
-                      {report.vision_supports_report == null
-                        ? ""
-                        : report.vision_supports_report
-                        ? " Supports the submitted status."
-                        : " Does not support the submitted status."}
-                    </p>
-                  )}
-                  {report.agent_summary && (
-                    <p className="mt-4 border border-white/8 bg-black/20 px-4 py-3 text-sm text-white/55">
-                      {report.agent_summary}
-                    </p>
-                  )}
-                </div>
+            pendingClusters.map(({ items, badges }) => {
+              const lead = items[0];
+              if (!lead) {
+                return null;
+              }
 
-                <div className="grid gap-4">
-                  {photoUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={photoUrl}
-                      alt="Submitted report evidence"
-                      className="h-56 w-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-56 items-center justify-center border border-dashed border-white/10 text-sm text-white/30">
-                      No photo attached
-                    </div>
-                  )}
+              const clusterReportIds = items.map((item) => item.report.id).join(",");
+
+              return (
+              <article
+                key={clusterReportIds}
+                className="border border-white/10 bg-white/[0.02] p-6"
+              >
+                <div className="grid gap-6 border-b border-white/8 pb-6 lg:grid-cols-[1.3fr_0.7fr]">
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.2em] text-white/35">
+                      {formatReportLabel(lead.report.report_type)} incident • {lead.target?.branchType ?? "location"}
+                    </p>
+                    <h3 className="mt-2 font-serif text-2xl font-light text-white">
+                      {lead.target?.branchName ?? `Branch ${lead.report.branch_id}`}
+                    </h3>
+                    <p className="mt-2 text-sm text-white/55">
+                      {lead.target
+                        ? `${lead.target.bankName} • ${lead.target.address}, ${lead.target.suburbName} ${lead.target.postcode}`
+                        : `Suburb ${lead.report.suburb_id}`}
+                    </p>
+                    <p className="mt-4 text-sm leading-relaxed text-white/55">
+                      {items.length} matching evidence item{items.length === 1 ? "" : "s"} were grouped into one incident so you can moderate the signal as a whole instead of chasing duplicates.
+                    </p>
+                    <SignalBadges badges={badges} className="mt-4" />
+                  </div>
 
                   <form action="/api/admin/reports/moderate" method="post" className="grid gap-3">
-                    <input type="hidden" name="reportId" value={report.id} />
+                    <input type="hidden" name="scope" value="cluster" />
+                    <input type="hidden" name="reportIds" value={clusterReportIds} />
                     <input type="hidden" name="moderator" value="web-admin" />
                     <textarea
                       name="moderationNote"
                       rows={3}
-                      placeholder="Optional moderation note"
+                      placeholder="Cluster moderation note"
                       className="w-full resize-none border border-white/10 bg-black/20 px-4 py-3 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-white/25"
                     />
                     <div className="grid grid-cols-2 gap-3">
@@ -290,7 +233,7 @@ export default async function AdminReportsPage({
                         value="approved"
                         className="border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-xs uppercase tracking-[0.18em] text-emerald-200 transition hover:bg-emerald-500/15"
                       >
-                        Approve & Sync
+                        Approve Cluster
                       </button>
                       <button
                         type="submit"
@@ -298,13 +241,178 @@ export default async function AdminReportsPage({
                         value="rejected"
                         className="border border-red-500/30 bg-red-500/10 px-4 py-3 text-xs uppercase tracking-[0.18em] text-red-200 transition hover:bg-red-500/15"
                       >
-                        Reject
+                        Reject Cluster
                       </button>
                     </div>
                   </form>
                 </div>
+
+                <div className="mt-6 grid gap-5">
+                  {items.map(({ report, target, photoUrl }) => {
+                    const trust = getReporterTrustSnapshot(report);
+                    const trustBadges = [
+                      ...(report.photo_path || report.photo_sha256
+                        ? [{ label: "Proof-backed", tone: "blue" as const }]
+                        : []),
+                      ...(trust?.level === "trusted"
+                        ? [{ label: "Trusted reporter", tone: "emerald" as const }]
+                        : trust?.level === "watch"
+                        ? [{ label: "Watch reporter", tone: "amber" as const }]
+                        : []),
+                    ];
+
+                    return (
+                      <div
+                        key={report.id}
+                        className="grid gap-5 border border-white/8 bg-black/20 p-5 lg:grid-cols-[1.3fr_0.7fr]"
+                      >
+                        <div>
+                          <div className="flex flex-wrap items-center gap-3 text-xs text-white/35">
+                            <span>{new Date(report.submitted_at).toLocaleString("en-AU")}</span>
+                            <span>Agent: {report.agent_recommendation ?? "review"}</span>
+                            <span>
+                              Confidence:{" "}
+                              {report.agent_confidence != null
+                                ? `${Math.round(report.agent_confidence * 100)}%`
+                                : "n/a"}
+                            </span>
+                            {trust && (
+                              <span>
+                                Reporter score: {Math.round(trust.score * 100)}%
+                              </span>
+                            )}
+                          </div>
+                          <SignalBadges badges={trustBadges} className="mt-3" />
+                          <p className="mt-4 text-sm leading-relaxed text-white/70">
+                            {report.note || "No reporter note supplied."}
+                          </p>
+                          <div className="mt-4 grid grid-cols-2 gap-3 text-xs text-white/45 sm:grid-cols-3">
+                            <div className="border border-white/8 bg-black/20 px-3 py-2">
+                              <p className="text-[10px] uppercase tracking-[0.18em] text-white/25">
+                                Device
+                              </p>
+                              <p className="mt-1">
+                                {report.camera_make || report.camera_model
+                                  ? `${report.camera_make ?? ""} ${report.camera_model ?? ""}`.trim()
+                                  : "Unknown"}
+                              </p>
+                            </div>
+                            <div className="border border-white/8 bg-black/20 px-3 py-2">
+                              <p className="text-[10px] uppercase tracking-[0.18em] text-white/25">
+                                Metadata
+                              </p>
+                              <p className="mt-1">{report.photo_metadata_status ?? "none"}</p>
+                            </div>
+                            <div className="border border-white/8 bg-black/20 px-3 py-2">
+                              <p className="text-[10px] uppercase tracking-[0.18em] text-white/25">
+                                Captured
+                              </p>
+                              <p className="mt-1">
+                                {report.captured_at
+                                  ? new Date(report.captured_at).toLocaleString("en-AU")
+                                  : "Unknown"}
+                              </p>
+                            </div>
+                            <div className="border border-white/8 bg-black/20 px-3 py-2">
+                              <p className="text-[10px] uppercase tracking-[0.18em] text-white/25">
+                                GPS
+                              </p>
+                              <p className="mt-1">
+                                {report.capture_distance_km != null
+                                  ? `${report.capture_distance_km.toFixed(1)}km from branch`
+                                  : report.capture_lat != null && report.capture_lng != null
+                                  ? "Present"
+                                  : "Missing"}
+                              </p>
+                            </div>
+                            <div className="border border-white/8 bg-black/20 px-3 py-2">
+                              <p className="text-[10px] uppercase tracking-[0.18em] text-white/25">
+                                Software
+                              </p>
+                              <p className="mt-1">{report.camera_software || "Camera default"}</p>
+                            </div>
+                            <div className="border border-white/8 bg-black/20 px-3 py-2">
+                              <p className="text-[10px] uppercase tracking-[0.18em] text-white/25">
+                                Hash
+                              </p>
+                              <p className="mt-1">{shortenHash(report.photo_sha256)}</p>
+                            </div>
+                          </div>
+                          {trust && (
+                            <p className="mt-4 border border-white/8 bg-black/20 px-4 py-3 text-sm text-white/55">
+                              Reporter trust: {trust.summary}
+                            </p>
+                          )}
+                          {report.photo_metadata_summary && (
+                            <p className="mt-4 border border-white/8 bg-black/20 px-4 py-3 text-sm text-white/55">
+                              {report.photo_metadata_summary}
+                            </p>
+                          )}
+                          {report.vision_summary && (
+                            <p className="mt-4 border border-blue-500/10 bg-blue-500/5 px-4 py-3 text-sm text-white/55">
+                              Vision review ({report.vision_model || "model"}): {report.vision_summary}
+                              {report.vision_authenticity
+                                ? ` Authenticity ${report.vision_authenticity}.`
+                                : ""}
+                              {report.vision_supports_report == null
+                                ? ""
+                                : report.vision_supports_report
+                                ? " Supports the submitted status."
+                                : " Does not support the submitted status."}
+                            </p>
+                          )}
+                          {report.agent_summary && (
+                            <p className="mt-4 border border-white/8 bg-black/20 px-4 py-3 text-sm text-white/55">
+                              {report.agent_summary}
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="grid gap-4">
+                          {photoUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={photoUrl}
+                              alt="Submitted report evidence"
+                              className="h-56 w-full object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-56 items-center justify-center border border-dashed border-white/10 text-sm text-white/30">
+                              No photo attached
+                            </div>
+                          )}
+
+                          <form action="/api/admin/reports/moderate" method="post" className="grid gap-3">
+                            <input type="hidden" name="scope" value="report" />
+                            <input type="hidden" name="reportId" value={report.id} />
+                            <input type="hidden" name="moderator" value="web-admin" />
+                            <div className="grid grid-cols-2 gap-3">
+                              <button
+                                type="submit"
+                                name="action"
+                                value="approved"
+                                className="border border-emerald-500/20 bg-emerald-500/[0.06] px-4 py-3 text-xs uppercase tracking-[0.18em] text-emerald-200 transition hover:bg-emerald-500/[0.12]"
+                              >
+                                Approve Only
+                              </button>
+                              <button
+                                type="submit"
+                                name="action"
+                                value="rejected"
+                                className="border border-red-500/20 bg-red-500/[0.06] px-4 py-3 text-xs uppercase tracking-[0.18em] text-red-200 transition hover:bg-red-500/[0.12]"
+                              >
+                                Reject Only
+                              </button>
+                            </div>
+                          </form>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </article>
-            ))
+            );
+            })
           )}
         </div>
       </section>

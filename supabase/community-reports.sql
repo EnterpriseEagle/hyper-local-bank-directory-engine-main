@@ -4,7 +4,7 @@ create table if not exists public.community_reports (
   id uuid primary key default gen_random_uuid(),
   branch_id bigint not null,
   suburb_id bigint not null,
-  report_type text not null check (report_type in ('working', 'atm_empty', 'branch_closed', 'long_queue')),
+  report_type text not null check (report_type in ('working', 'atm_empty', 'branch_closed', 'closure_notice', 'long_queue')),
   note text,
   photo_path text,
   photo_bucket text,
@@ -40,6 +40,18 @@ create table if not exists public.community_reports (
   submitted_at timestamptz not null default now(),
   synced_at timestamptz
 );
+
+do $$
+begin
+  alter table public.community_reports
+    drop constraint if exists community_reports_report_type_check;
+
+  alter table public.community_reports
+    add constraint community_reports_report_type_check
+    check (report_type in ('working', 'atm_empty', 'branch_closed', 'closure_notice', 'long_queue'));
+exception
+  when duplicate_object then null;
+end $$;
 
 alter table public.community_reports add column if not exists photo_sha256 text;
 alter table public.community_reports add column if not exists photo_size_bytes bigint;

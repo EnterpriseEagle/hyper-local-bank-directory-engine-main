@@ -1,7 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 import { authorizeReportsAdminRequest } from "@/lib/reports/auth";
-import { moderateCommunityReport } from "@/lib/reports/supabase";
+import { moderateCommunityReport, moderateCommunityReports } from "@/lib/reports/supabase";
 import { getBranchModerationTargets } from "@/lib/data";
 
 export async function POST(request: NextRequest) {
@@ -12,32 +12,60 @@ export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
     const reportId = formData.get("reportId");
+    const reportIds = formData.get("reportIds");
     const action = formData.get("action");
     const moderationNote = formData.get("moderationNote");
     const moderator = formData.get("moderator");
+    const scope = formData.get("scope");
 
     if (
-      typeof reportId !== "string" ||
       (action !== "approved" && action !== "rejected")
     ) {
       return NextResponse.json({ error: "Invalid moderation payload" }, { status: 400 });
     }
 
-    const updated = await moderateCommunityReport({
-      action,
-      moderationNote: typeof moderationNote === "string" ? moderationNote : undefined,
-      moderator:
-        typeof moderator === "string" && moderator.trim()
-          ? moderator.trim()
-          : "web-admin",
-      reportId,
-    });
+    const resolvedModerator =
+      typeof moderator === "string" && moderator.trim()
+        ? moderator.trim()
+        : "web-admin";
+    const resolvedNote = typeof moderationNote === "string" ? moderationNote : undefined;
 
-    const [target] = await getBranchModerationTargets([updated.branch_id]);
+    const updated =
+      scope === "cluster"
+        ? await moderateCommunityReports({
+            action,
+            moderationNote: resolvedNote,
+            moderator: resolvedModerator,
+            reportIds:
+              typeof reportIds === "string"
+                ? reportIds
+                    .split(",")
+                    .map((value) => value.trim())
+                    .filter(Boolean)
+                : [],
+          })
+        : typeof reportId === "string"
+        ? [
+            await moderateCommunityReport({
+              action,
+              moderationNote: resolvedNote,
+              moderator: resolvedModerator,
+              reportId,
+            }),
+          ]
+        : [];
+
+    if (updated.length === 0) {
+      return NextResponse.json({ error: "Invalid moderation payload" }, { status: 400 });
+    }
+
+    const targets = await getBranchModerationTargets(
+      Array.from(new Set(updated.map((report) => report.branch_id)))
+    );
 
     revalidatePath("/");
     revalidatePath("/closures");
-    if (target) {
+    for (const target of targets) {
       revalidatePath(`/${target.stateSlug}/${target.suburbSlug}`);
       revalidatePath(`/bank/${target.bankSlug}/${target.stateSlug}/${target.suburbSlug}`);
       revalidatePath(`/atm/${target.suburbSlug}`);

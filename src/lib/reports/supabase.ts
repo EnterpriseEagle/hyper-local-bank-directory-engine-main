@@ -2,13 +2,14 @@ import "server-only";
 
 import { randomUUID } from "crypto";
 import { createClient } from "@supabase/supabase-js";
-import { submitStatusReport } from "@/lib/data";
+import { getBranchModerationTargets, submitStatusReport } from "@/lib/data";
 import {
   COMMUNITY_REPORTS_TABLE,
   DEFAULT_REPORTS_BUCKET,
   MAX_REPORT_IMAGE_BYTES,
   MAX_REPORT_NOTE_LENGTH,
   type AgentAssessment,
+  type CommunityIncidentSummary,
   type CommunityReportRecord,
   type ExtractedPhotoMetadata,
   type ModerationStatus,
@@ -16,6 +17,12 @@ import {
   type UploadedPhoto,
   type VisionAssessment,
 } from "./types";
+import {
+  buildCommunityIncidentSummary,
+  buildReporterTrustSnapshot,
+  groupCommunityReportsIntoIncidents,
+  mergeReportMetadataContext,
+} from "./trust";
 
 const REPORT_SELECT_FIELDS = [
   "id",
@@ -98,6 +105,41 @@ function normaliseNote(note?: string) {
   return trimmed.slice(0, MAX_REPORT_NOTE_LENGTH);
 }
 
+async function getReporterTrustSnapshotForHash(
+  client: ReturnType<typeof getSupabaseReportsAdminClient>["client"],
+  reporterHash: string | null | undefined
+) {
+  if (!reporterHash) {
+    return buildReporterTrustSnapshot({ approvedCount: 0, rejectedCount: 0 });
+  }
+
+  const [approved, rejected] = await Promise.all([
+    client
+      .from(COMMUNITY_REPORTS_TABLE)
+      .select("id", { count: "exact", head: true })
+      .eq("reporter_hash", reporterHash)
+      .eq("moderation_status", "approved"),
+    client
+      .from(COMMUNITY_REPORTS_TABLE)
+      .select("id", { count: "exact", head: true })
+      .eq("reporter_hash", reporterHash)
+      .eq("moderation_status", "rejected"),
+  ]);
+
+  if (approved.error) {
+    throw new Error(`Failed to load reporter trust history: ${approved.error.message}`);
+  }
+
+  if (rejected.error) {
+    throw new Error(`Failed to load reporter trust history: ${rejected.error.message}`);
+  }
+
+  return buildReporterTrustSnapshot({
+    approvedCount: approved.count ?? 0,
+    rejectedCount: rejected.count ?? 0,
+  });
+}
+
 function assertImageFile(file: File) {
   if (file.size > MAX_REPORT_IMAGE_BYTES) {
     throw new Error("Photo must be 8MB or smaller.");
@@ -149,18 +191,12 @@ export async function queueCommunityReport(input: {
 }) {
   const { client } = getSupabaseReportsAdminClient();
   const note = normaliseNote(input.payload.note);
-
-  const row = {
-    agent_confidence: input.assessment.confidence,
-    agent_recommendation: input.assessment.recommendation,
-    agent_summary: input.assessment.summary,
-    branch_id: input.payload.branchId,
-    moderation_status: "pending" satisfies ModerationStatus,
-    note: note ?? null,
-    photo_bucket: input.uploadedPhoto?.bucket ?? null,
-    photo_content_type: input.uploadedPhoto?.contentType ?? null,
-    photo_height: input.photoMetadata?.height ?? null,
-    photo_metadata_json: input.photoMetadata
+  const reporterTrust = await getReporterTrustSnapshotForHash(
+    client,
+    input.payload.ipHash ?? null
+  );
+  const photoMetadataJson = mergeReportMetadataContext({
+    photoMetadataJson: input.photoMetadata
       ? {
           cameraMake: input.photoMetadata.cameraMake,
           cameraModel: input.photoMetadata.cameraModel,
@@ -179,6 +215,20 @@ export async function queueCommunityReport(input: {
           width: input.photoMetadata.width,
         }
       : null,
+    reporterTrust,
+  });
+
+  const row = {
+    agent_confidence: input.assessment.confidence,
+    agent_recommendation: input.assessment.recommendation,
+    agent_summary: input.assessment.summary,
+    branch_id: input.payload.branchId,
+    moderation_status: "pending" satisfies ModerationStatus,
+    note: note ?? null,
+    photo_bucket: input.uploadedPhoto?.bucket ?? null,
+    photo_content_type: input.uploadedPhoto?.contentType ?? null,
+    photo_height: input.photoMetadata?.height ?? null,
+    photo_metadata_json: photoMetadataJson,
     photo_metadata_status: input.photoMetadata?.status ?? null,
     photo_metadata_summary: input.photoMetadata?.summary ?? null,
     photo_path: input.uploadedPhoto?.path ?? null,
@@ -217,23 +267,83 @@ export async function queueCommunityReport(input: {
   return data as unknown as CommunityReportRecord;
 }
 
-export async function listCommunityReportsByStatus(
-  statuses: ModerationStatus[],
-  limit = 25
-) {
+async function listCommunityReports(input: {
+  statuses?: ModerationStatus[];
+  suburbId?: number;
+  branchIds?: number[];
+  limit?: number;
+}) {
   const { client } = getSupabaseReportsAdminClient();
-  const { data, error } = await client
+  let query = client
     .from(COMMUNITY_REPORTS_TABLE)
     .select(REPORT_SELECT_FIELDS)
-    .in("moderation_status", statuses)
-    .order("submitted_at", { ascending: false })
-    .limit(limit);
+    .order("submitted_at", { ascending: false });
+
+  if (input.statuses?.length) {
+    query = query.in("moderation_status", input.statuses);
+  }
+
+  if (input.suburbId != null) {
+    query = query.eq("suburb_id", input.suburbId);
+  }
+
+  if (input.branchIds?.length) {
+    query = query.in("branch_id", input.branchIds);
+  }
+
+  if (input.limit != null) {
+    query = query.limit(input.limit);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     throw new Error(`Failed to load community reports: ${error.message}`);
   }
 
   return (data ?? []) as unknown as CommunityReportRecord[];
+}
+
+export async function listCommunityReportsByStatus(
+  statuses: ModerationStatus[],
+  limit = 25
+) {
+  return listCommunityReports({ statuses, limit });
+}
+
+export async function listApprovedCommunityIncidentSummaries(input: {
+  branchIds?: number[];
+  suburbId?: number;
+  limit?: number;
+}): Promise<CommunityIncidentSummary[]> {
+  if (input.branchIds && input.branchIds.length === 0) {
+    return [];
+  }
+
+  const reports = await listCommunityReports({
+    statuses: ["approved"],
+    suburbId: input.suburbId,
+    branchIds: input.branchIds,
+    limit: Math.max((input.limit ?? 6) * 8, 24),
+  });
+
+  if (reports.length === 0) {
+    return [];
+  }
+
+  const clusters = groupCommunityReportsIntoIncidents(reports).slice(0, input.limit ?? 6);
+  const branchIds = Array.from(new Set(clusters.map((cluster) => cluster.branchId)));
+  const branchTargets = await getBranchModerationTargets(branchIds);
+  const branchMap = new Map(branchTargets.map((target) => [target.branchId, target]));
+
+  return clusters.map((cluster) => {
+    const target = branchMap.get(cluster.branchId);
+    return buildCommunityIncidentSummary({
+      branchName: target?.branchName ?? `Location ${cluster.branchId}`,
+      branchType: target?.branchType ?? null,
+      cluster,
+    });
+  });
 }
 
 export async function createSignedReportPhotoUrl(
@@ -301,4 +411,34 @@ export async function moderateCommunityReport(input: {
   }
 
   return updated as unknown as CommunityReportRecord;
+}
+
+export async function moderateCommunityReports(input: {
+  action: "approved" | "rejected";
+  moderator: string;
+  moderationNote?: string;
+  reportIds: string[];
+}) {
+  const uniqueReportIds = Array.from(
+    new Set(input.reportIds.map((reportId) => reportId.trim()).filter(Boolean))
+  );
+
+  if (uniqueReportIds.length === 0) {
+    throw new Error("No reports supplied for moderation.");
+  }
+
+  const updated: CommunityReportRecord[] = [];
+
+  for (const reportId of uniqueReportIds) {
+    updated.push(
+      await moderateCommunityReport({
+        action: input.action,
+        moderationNote: input.moderationNote,
+        moderator: input.moderator,
+        reportId,
+      })
+    );
+  }
+
+  return updated;
 }

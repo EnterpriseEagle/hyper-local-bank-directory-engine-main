@@ -16,6 +16,8 @@ export type AgentRecommendation = "approve" | "review" | "reject";
 export type ModerationStatus = "pending" | "approved" | "rejected";
 export type PhotoMetadataStatus = "missing" | "partial" | "present" | "edited";
 export type VisionAuthenticity = "high" | "medium" | "low" | "unclear";
+export type ReporterTrustLevel = "new" | "building" | "trusted" | "watch";
+export type SignalBadgeTone = "neutral" | "emerald" | "amber" | "blue";
 
 export interface ReportPayload {
   branchId: number;
@@ -30,6 +32,34 @@ export interface AgentAssessment {
   recommendation: AgentRecommendation;
   summary: string;
   model: string | null;
+}
+
+export interface ReporterTrustSnapshot {
+  approvedCount: number;
+  rejectedCount: number;
+  score: number;
+  summary: string;
+  totalReviewed: number;
+  level: ReporterTrustLevel;
+}
+
+export interface SignalBadge {
+  label: string;
+  tone: SignalBadgeTone;
+}
+
+export interface CommunityIncidentSummary {
+  badges: SignalBadge[];
+  branchId: number;
+  branchName: string;
+  branchType: string | null;
+  latestSubmittedAt: string;
+  proofCount: number;
+  reportType: ReportType;
+  suburbId: number;
+  totalReports: number;
+  trustedReporterCount: number;
+  uniqueReporterCount: number;
 }
 
 export interface UploadedPhoto {

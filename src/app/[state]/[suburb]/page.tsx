@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { LiveSignalList } from "@/components/live-signal-list";
 import {
   getSuburbBySlugInState,
   getBranchesForSuburb,
@@ -26,6 +27,10 @@ import {
 } from "@/lib/seo";
 import { toTitleCase } from "@/lib/utils";
 import { buildVisitAdvisory } from "@/lib/visit-advisory";
+import {
+  listApprovedCommunityIncidentSummaries,
+  supabaseReportsConfigured,
+} from "@/lib/reports/supabase";
 
 interface Props {
   params: Promise<{ state: string; suburb: string }>;
@@ -62,27 +67,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   });
 }
 
-function timeAgo(dateStr: string) {
-  const now = Date.now();
-  const then = new Date(dateStr).getTime();
-  const diff = Math.max(0, now - then);
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  return `${days}d ago`;
-}
-
-const REPORT_LABELS: Record<string, { label: string; icon: string; color: string }> = {
-  working: { label: "Working", icon: "✅", color: "text-emerald-400" },
-  atm_empty: { label: "ATM Empty", icon: "❌", color: "text-red-400" },
-  branch_closed: { label: "Branch Closed", icon: "❌", color: "text-red-400" },
-  closure_notice: { label: "Closure Notice", icon: "📌", color: "text-amber-400" },
-  long_queue: { label: "Long Queue", icon: "⏳", color: "text-amber-400" },
-};
-
 export const revalidate = 60; // Revalidate every 60s for freshness
 
 export default async function SuburbPage({ params }: Props) {
@@ -90,11 +74,14 @@ export default async function SuburbPage({ params }: Props) {
   const suburb = await getSuburbBySlugInState(suburbSlug, state);
   if (!suburb || suburb.stateSlug !== state) notFound();
 
-  const [branches, nearby, recentReports, reportCount] = await Promise.all([
+  const [branches, nearby, recentReports, reportCount, approvedIncidents] = await Promise.all([
     getBranchesForSuburb(suburb.id),
     getNearbySuburbs(suburb.id, state, 6),
     getRecentReportsForSuburb(suburb.id, 10),
     getReportCountForSuburb(suburb.id),
+    supabaseReportsConfigured()
+      ? listApprovedCommunityIncidentSummaries({ suburbId: suburb.id, limit: 10 })
+      : Promise.resolve([]),
   ]);
 
   const stateName = STATE_NAMES[state] || suburb.state;
@@ -241,6 +228,25 @@ export default async function SuburbPage({ params }: Props) {
     fallbackLocations: nearby.length,
     recentReports,
   });
+  const liveFeedItems =
+    approvedIncidents.length > 0
+      ? approvedIncidents.map((incident) => ({
+          badges: incident.badges,
+          branchName: incident.branchName,
+          createdAt: incident.latestSubmittedAt,
+          key: `${incident.branchId}-${incident.reportType}-${incident.latestSubmittedAt}`,
+          locationLabel: `${incident.totalReports} matching report${
+            incident.totalReports === 1 ? "" : "s"
+          }`,
+          reportType: incident.reportType,
+        }))
+      : recentReports.map((report) => ({
+          badges: [],
+          branchName: report.branchName ?? "Unknown location",
+          createdAt: report.createdAt,
+          key: String(report.id),
+          reportType: report.reportType,
+        }));
 
   return (
     <div>
@@ -458,7 +464,7 @@ export default async function SuburbPage({ params }: Props) {
       </section>
 
       {/* Recent Reports Feed */}
-      {recentReports.length > 0 && (
+      {liveFeedItems.length > 0 && (
         <section className="border-b border-white/5 px-6 sm:px-10 py-16 sm:py-20 bg-black">
           <div className="max-w-[1000px] mx-auto">
             <div className="flex items-center gap-3 mb-6">
@@ -470,40 +476,11 @@ export default async function SuburbPage({ params }: Props) {
                 Recent Activity in {displayName}
               </p>
             </div>
+            <p className="mb-6 max-w-[640px] text-[13px] leading-[1.6] text-white/35">
+              Proof-backed and multi-report badges appear here once matching reports clear moderation, so locals can separate one-off noise from stronger ground truth.
+            </p>
 
-            <div className="border-t border-white/5">
-              {recentReports.map((r) => {
-                const info = REPORT_LABELS[r.reportType] || {
-                  label: r.reportType,
-                  icon: "❓",
-                  color: "text-white/50",
-                };
-                return (
-                  <div
-                    key={r.id}
-                    className="flex items-center gap-4 py-3.5 border-b border-white/5"
-                  >
-                    <span className="text-base shrink-0">{info.icon}</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span
-                          className={`text-[11px] font-medium uppercase tracking-wide ${info.color}`}
-                        >
-                          {info.label}
-                        </span>
-                        <span className="text-white/10">&mdash;</span>
-                        <span className="text-[13px] font-light text-white/70 truncate">
-                          {r.branchName}
-                        </span>
-                      </div>
-                    </div>
-                    <span className="text-[10px] text-white/20 shrink-0">
-                      {timeAgo(r.createdAt)}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
+            <LiveSignalList items={liveFeedItems} />
           </div>
         </section>
       )}

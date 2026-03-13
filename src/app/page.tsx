@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { HeroSearch } from "@/components/hero-search";
+import { LiveSignalList } from "@/components/live-signal-list";
 import { SwitchOfferCard } from "@/components/switch-banner";
 import { StructuredData } from "@/components/structured-data";
 import { getAllInsights } from "@/lib/insights";
@@ -12,6 +13,10 @@ import {
   getOutageHotspots,
   STATE_NAMES,
 } from "@/lib/data";
+import {
+  listApprovedCommunityIncidentSummaries,
+  supabaseReportsConfigured,
+} from "@/lib/reports/supabase";
 import {
   absoluteUrl,
   buildCollectionPageSchema,
@@ -35,14 +40,6 @@ export const metadata = buildMetadata({
   ],
 });
 
-const REPORT_LABELS: Record<string, { label: string; icon: string; color: string }> = {
-  working: { label: "Working", icon: "✅", color: "text-emerald-400" },
-  atm_empty: { label: "ATM Empty", icon: "❌", color: "text-red-400" },
-  branch_closed: { label: "Branch Closed", icon: "❌", color: "text-red-400" },
-  closure_notice: { label: "Closure Notice", icon: "📌", color: "text-amber-400" },
-  long_queue: { label: "Long Queue", icon: "⏳", color: "text-amber-400" },
-};
-
 const HOME_FAQ = [
   {
     q: "How do I find a working bank branch near me in Australia?",
@@ -62,22 +59,9 @@ const HOME_FAQ = [
   },
 ];
 
-function timeAgo(dateStr: string) {
-  const now = Date.now();
-  const then = new Date(dateStr).getTime();
-  const diff = Math.max(0, now - then);
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  return `${days}d ago`;
-}
-
 export default async function HomePage() {
   const featuredInsights = getAllInsights().slice(0, 3);
-  const [stats, states, closures, recentReports, outageStats, hotspots] =
+  const [stats, states, closures, recentReports, outageStats, hotspots, approvedIncidents] =
     await Promise.all([
       getStats(),
       getStateList(),
@@ -85,9 +69,33 @@ export default async function HomePage() {
       getRecentReportsGlobal(4),
       getLiveOutageStats(),
       getOutageHotspots(6),
+      supabaseReportsConfigured()
+        ? listApprovedCommunityIncidentSummaries({ limit: 4 })
+        : Promise.resolve([]),
     ]);
 
   const totalReports = stats.totalReports;
+  const liveFeedItems =
+    approvedIncidents.length > 0
+      ? approvedIncidents.map((incident) => ({
+          badges: incident.badges,
+          branchName: incident.branchName,
+          createdAt: incident.latestSubmittedAt,
+          key: `${incident.branchId}-${incident.reportType}-${incident.latestSubmittedAt}`,
+          locationLabel: `${incident.totalReports} matching report${
+            incident.totalReports === 1 ? "" : "s"
+          }`,
+          reportType: incident.reportType,
+        }))
+      : recentReports.map((report) => ({
+          badges: [],
+          branchName: report.branchName,
+          createdAt: report.createdAt,
+          href: `/${report.stateSlug}/${report.suburbSlug}`,
+          key: String(report.id),
+          locationLabel: `${report.suburbName} ${report.postcode}, ${report.state}`,
+          reportType: report.reportType,
+        }));
 
   const homeSchema = buildCollectionPageSchema({
     name: "Australian bank branches, ATMs and live status by suburb",
@@ -311,6 +319,9 @@ export default async function HomePage() {
               <h2 className="font-serif text-[clamp(1.75rem,4vw,3rem)] font-light leading-[1.1] text-white">
                 What&apos;s Happening Right Now
               </h2>
+              <p className="mt-3 max-w-[560px] text-[13px] leading-[1.6] text-white/35">
+                Approved signals now surface proof-backed and multi-report badges when enough evidence clears moderation.
+              </p>
             </div>
             <div className="text-right">
               <div className="text-[clamp(1.25rem,2vw,1.75rem)] font-serif font-light text-white">
@@ -323,7 +334,7 @@ export default async function HomePage() {
           </div>
 
           {/* 4 compact report cards */}
-          {recentReports.length === 0 ? (
+          {liveFeedItems.length === 0 ? (
             <div className="border border-white/5 p-12 text-center">
               <p className="text-white/30 text-[14px] mb-2">
                 No reports yet. Be the first to report.
@@ -333,44 +344,8 @@ export default async function HomePage() {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-px bg-white/5">
-              {recentReports.map((r) => {
-                const info = REPORT_LABELS[r.reportType] || {
-                  label: r.reportType,
-                  icon: "❓",
-                  color: "text-white/50",
-                };
-                return (
-                  <Link
-                    key={r.id}
-                    href={`/${r.stateSlug}/${r.suburbSlug}`}
-                    className="group bg-black p-6 flex items-start gap-4 transition-all duration-300 hover:bg-white/[0.02]"
-                  >
-                    <span className="text-xl mt-0.5 shrink-0">{info.icon}</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span
-                          className={`text-[11px] font-medium uppercase tracking-wide ${info.color}`}
-                        >
-                          {info.label}
-                        </span>
-                        <span className="text-[11px] text-white/15">
-                          {timeAgo(r.createdAt)}
-                        </span>
-                      </div>
-                      <p className="text-[14px] font-light text-white truncate">
-                        {r.branchName}
-                      </p>
-                      <p className="text-[11px] text-white/25 mt-0.5">
-                        {r.suburbName} {r.postcode}, {r.state}
-                      </p>
-                    </div>
-                    <span className="text-white/10 mt-1 transition-all duration-300 group-hover:text-white/30 group-hover:translate-x-1 shrink-0">
-                      &rarr;
-                    </span>
-                  </Link>
-                );
-              })}
+            <div className="bg-black">
+              <LiveSignalList items={liveFeedItems} />
             </div>
           )}
 
