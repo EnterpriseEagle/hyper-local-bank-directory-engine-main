@@ -100,16 +100,16 @@ export function HeroSearch() {
             }
           }}
           placeholder="Enter suburb or postcode..."
-          className="w-full pl-14 pr-36 py-5 text-[16px] font-light tracking-wide border border-white/15 bg-white/[0.04] text-white placeholder:text-white/30 focus:outline-none focus:border-white/30 focus:bg-white/[0.06] transition-all duration-300"
+          className="w-full pl-14 pr-12 py-4 text-[16px] font-light tracking-wide border border-white/15 bg-white/[0.04] text-white placeholder:text-white/30 focus:outline-none focus:border-white/30 focus:bg-white/[0.06] transition-all duration-300 sm:pr-36 sm:py-5"
         />
         <button
           onClick={submitQuery}
-          className="absolute right-2 top-1/2 -translate-y-1/2 px-6 py-3 bg-white text-black text-[11px] uppercase tracking-[0.2em] font-medium hover:bg-white/90 transition-colors duration-300"
+          className="mt-2 w-full px-6 py-3 bg-white text-black text-[11px] uppercase tracking-[0.2em] font-medium hover:bg-white/90 transition-colors duration-300 sm:absolute sm:right-2 sm:top-1/2 sm:mt-0 sm:w-auto sm:-translate-y-1/2"
         >
           Find Banks
         </button>
         {loading && (
-          <div className="absolute right-36 top-1/2 -translate-y-1/2">
+          <div className="absolute right-4 top-1/2 -translate-y-1/2 sm:right-36">
             <div className="w-4 h-4 border border-white/30 border-t-transparent rounded-full animate-spin" />
           </div>
         )}
