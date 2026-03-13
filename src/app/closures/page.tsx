@@ -1,12 +1,14 @@
 
 import { Metadata } from "next";
 import Link from "next/link";
-import { 
-  getRecentClosures, 
-  getTopClosureSuburbs, 
-  getStats,
-  STATE_NAMES
-} from "@/lib/data";
+import { getRecentClosures, getTopClosureSuburbs, getStats } from "@/lib/data";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 import { StructuredData } from "@/components/structured-data";
 import { SwitchOfferCard } from "@/components/switch-banner";
 import {
@@ -18,8 +20,19 @@ import {
   buildMetadata,
   buildWebPageSchema,
 } from "@/lib/seo";
+import { toTitleCase } from "@/lib/utils";
 
 const currentYear = new Date().getFullYear();
+
+function chunkItems<T>(items: T[], size: number) {
+  const chunks: T[][] = [];
+
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size));
+  }
+
+  return chunks;
+}
 
 export const metadata: Metadata = buildMetadata({
   title: `Bank Branch Closures Australia ${currentYear} - Live Tracker`,
@@ -80,6 +93,7 @@ export default async function ClosuresPage() {
     }))
   );
   const faqSchema = buildFAQSchema(faq);
+  const closureSlides = chunkItems(recentClosures, 4);
 
   return (
     <div className="bg-black text-white min-h-screen">
@@ -139,33 +153,72 @@ export default async function ClosuresPage() {
       <div className="mx-auto max-w-[1200px] px-6 py-20 grid grid-cols-1 lg:grid-cols-3 gap-16">
         {/* Main List */}
         <div className="lg:col-span-2">
-          <h2 className="mb-8 font-serif text-[28px] font-light">Recent Closures</h2>
-          <div className="space-y-px bg-white/5 border border-white/5">
-            {recentClosures.map((c, i) => (
-              <div key={i} className="bg-black p-6 flex items-start justify-between gap-4 group hover:bg-white/[0.02] transition-colors">
-                <div>
-                  <h3 className="text-[16px] font-medium text-white group-hover:text-red-400 transition-colors">
-                    {c.branchName}
-                  </h3>
-                  <p className="text-[13px] text-white/40 mt-1">
-                    {c.suburbName}, {c.state} {c.postcode}
-                  </p>
-                  <div className="mt-3 flex items-center gap-3">
-                    <span className="text-[10px] uppercase tracking-widest text-white/20">Closed:</span>
-                    <span className="text-[11px] text-white/60 font-medium bg-white/5 px-2 py-0.5 rounded">
-                      {c.closedDate || 'Recently'}
-                    </span>
-                  </div>
-                </div>
-                <Link 
-                  href={`/${c.stateSlug}/${c.suburbSlug}`}
-                  className="px-4 py-2 rounded-full border border-white/10 text-[11px] font-medium uppercase tracking-widest hover:bg-white hover:text-black transition-all"
-                >
-                  View Alternatives
-                </Link>
-              </div>
-            ))}
+          <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="font-serif text-[28px] font-light">Recent Closures</h2>
+              <p className="mt-3 max-w-[42rem] text-[14px] leading-relaxed text-white/40">
+                Browse the latest {recentClosures.length} closure records without
+                scrolling through a giant wall of cards. Each slide groups the
+                newest impacted branches into a tighter, easier-to-scan layout.
+              </p>
+            </div>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-white/25">
+              Swipe or use arrows
+            </p>
           </div>
+
+          <Carousel
+            opts={{ align: "start" }}
+            className="border border-white/5 bg-white/[0.02] px-4 pb-4 pt-[4.5rem] sm:px-6 sm:pb-6 sm:pt-20"
+          >
+            <CarouselContent>
+              {closureSlides.map((slide, slideIndex) => (
+                <CarouselItem key={`closure-slide-${slideIndex}`}>
+                  <div className="grid grid-cols-1 gap-px bg-white/5 md:grid-cols-2">
+                    {slide.map((closure) => (
+                      <Link
+                        key={`${closure.stateSlug}-${closure.suburbSlug}-${closure.branchName}`}
+                        href={`/${closure.stateSlug}/${closure.suburbSlug}`}
+                        className="group bg-black p-5 transition-colors hover:bg-white/[0.03]"
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <p className="text-[10px] uppercase tracking-[0.2em] text-red-400/65">
+                              {closure.state}
+                            </p>
+                            <h3 className="mt-3 text-[16px] font-medium leading-snug text-white transition-colors group-hover:text-red-400">
+                              {closure.branchName}
+                            </h3>
+                            <p className="mt-2 text-[13px] leading-relaxed text-white/40">
+                              {toTitleCase(closure.suburbName)}, {closure.state} {closure.postcode}
+                            </p>
+                          </div>
+                          <span className="text-white/15 transition-transform duration-300 group-hover:translate-x-1 group-hover:text-white/45">
+                            &rarr;
+                          </span>
+                        </div>
+
+                        <div className="mt-5 flex flex-wrap items-center gap-3">
+                          <span className="text-[10px] uppercase tracking-[0.2em] text-white/20">
+                            Closed
+                          </span>
+                          <span className="border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[11px] font-medium text-white/60">
+                            {closure.closedDate || "Recently"}
+                          </span>
+                          <span className="text-[10px] uppercase tracking-[0.2em] text-white/20">
+                            View alternatives
+                          </span>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+
+            <CarouselPrevious className="left-auto right-16 top-6 translate-y-0 border-white/10 bg-black text-white hover:bg-white hover:text-black disabled:border-white/5 disabled:bg-black disabled:text-white/15" />
+            <CarouselNext className="right-6 top-6 translate-y-0 border-white/10 bg-black text-white hover:bg-white hover:text-black disabled:border-white/5 disabled:bg-black disabled:text-white/15" />
+          </Carousel>
         </div>
 
         {/* Sidebar */}
@@ -181,7 +234,7 @@ export default async function ClosuresPage() {
                 >
                   <div className="flex justify-between items-center mb-1">
                     <span className="text-[15px] font-light text-white group-hover:text-red-400 transition-colors">
-                      {s.name}
+                      {toTitleCase(s.name)}
                     </span>
                     <span className="text-[12px] font-serif font-light text-red-400/80">
                       {s.closedBranches} closures
