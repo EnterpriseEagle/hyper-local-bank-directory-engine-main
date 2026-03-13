@@ -151,11 +151,19 @@ export default async function HomePage() {
   };
 
   const faqSchema = buildFAQSchema(HOME_FAQ);
+  const heroQuickLinks = [
+    { label: "Bank Near Me", href: "/bank-near-me", mobile: true },
+    { label: "ATM Near Me", href: "/atm-near-me", mobile: true },
+    { label: "Banking Insights", href: "/insights", mobile: false },
+    { label: "CBA Near Me", href: "/cba-near-me", mobile: true },
+    { label: "Browse All Banks", href: "/bank", mobile: false },
+    { label: "Latest Closures", href: "/closures", mobile: true },
+  ];
 
   return (
     <div>
         {/* ===== HERO: Search & Destroy ===== */}
-        <section className="relative z-20 flex flex-col justify-center overflow-visible bg-black px-6 pt-16 pb-10 sm:px-10 sm:pt-24 sm:pb-14">
+        <section className="relative z-20 flex flex-col justify-center overflow-visible bg-black px-6 pt-14 pb-8 sm:px-10 sm:pt-24 sm:pb-14">
           {/* Blue trust glow */}
           <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
             <div
@@ -168,51 +176,60 @@ export default async function HomePage() {
           </div>
 
           <div className="relative z-10 mx-auto w-full max-w-[900px]">
-            <p className="mb-2 text-[10px] uppercase tracking-[0.3em] text-white/30 font-medium">
+            <p className="mb-1.5 text-[9px] uppercase tracking-[0.28em] text-white/30 font-medium sm:mb-2 sm:text-[10px] sm:tracking-[0.3em]">
               Australia&apos;s Bank Status Tracker
             </p>
 
-            <h1 className="mb-3 font-serif text-[clamp(2rem,6vw,4rem)] font-light leading-[0.95] text-white tracking-[-0.02em]">
+            <h1 className="mb-2.5 font-serif text-[clamp(2rem,6vw,4rem)] font-light leading-[0.95] text-white tracking-[-0.02em] sm:mb-3">
               Find Your Bank.
               <br />
               <span className="text-white/40">See If It&apos;s Actually Working.</span>
             </h1>
 
-            <p className="mb-5 max-w-[560px] text-[15px] font-light leading-[1.6] text-white/45">
+            <p className="mb-4 max-w-[520px] text-[14px] font-light leading-[1.55] text-white/45 sm:mb-5 sm:max-w-[560px] sm:text-[15px] sm:leading-[1.6]">
               Search {stats.suburbs.toLocaleString()} Australian suburbs to check if nearby
               bank branches and ATMs are open, out of cash, showing closure notices,
               or recently closed before you make the trip.
             </p>
 
             {/* Search Bar */}
-            <div className="relative z-30 mb-4">
+            <div className="relative z-30 mb-3 sm:mb-4">
               <HeroSearch />
             </div>
 
             {/* Dirty secret stat */}
-            <p className="text-[12px] font-light text-white/30">
+            <p className="max-w-[420px] text-[11px] font-light leading-[1.55] text-white/30 sm:max-w-none sm:text-[12px] sm:leading-normal">
               <span className="text-red-400/70 font-medium">{stats.closedBranches.toLocaleString()}</span>{" "}
-              branches have closed across Australia.{" "}
-              <Link href="/#closures" className="underline text-white/40 hover:text-white/60 transition-colors">
-                Check your suburb&apos;s status now
-              </Link>
+              <span className="sm:hidden">
+                branches have closed nationally.{" "}
+                <Link
+                  href="/#closures"
+                  className="underline text-white/40 hover:text-white/60 transition-colors"
+                >
+                  Check yours
+                </Link>
+              </span>
+              <span className="hidden sm:inline">
+                branches have closed across Australia.{" "}
+                <Link
+                  href="/#closures"
+                  className="underline text-white/40 hover:text-white/60 transition-colors"
+                >
+                  Check your suburb&apos;s status now
+                </Link>
+              </span>
             </p>
 
-            <div className="mt-5 flex flex-wrap gap-3">
-              {[
-                ["Bank Near Me", "/bank-near-me"],
-                ["ATM Near Me", "/atm-near-me"],
-                ["Banking Insights", "/insights"],
-                ["CBA Near Me", "/cba-near-me"],
-                ["Browse All Banks", "/bank"],
-                ["Latest Closures", "/closures"],
-              ].map(([label, href]) => (
+            <div className="mt-4 flex flex-wrap gap-2 sm:mt-5 sm:gap-3">
+              {heroQuickLinks.map((link) => (
                 <Link
-                  key={href}
-                  href={href}
-                  className="border border-white/10 px-3 py-2 text-[11px] uppercase tracking-[0.2em] text-white/40 transition-all duration-300 hover:border-white/25 hover:text-white/70"
+                  key={link.href}
+                  href={link.href}
+                  className={`border border-white/10 px-3 py-2 text-[10px] uppercase tracking-[0.18em] text-white/40 transition-all duration-300 hover:border-white/25 hover:text-white/70 sm:text-[11px] sm:tracking-[0.2em] ${
+                    link.mobile ? "" : "hidden sm:inline-flex"
+                  }`}
                 >
-                  {label}
+                  {link.label}
                 </Link>
               ))}
             </div>
