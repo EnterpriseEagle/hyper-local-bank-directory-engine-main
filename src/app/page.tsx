@@ -220,6 +220,12 @@ export default async function HomePage() {
               </Link>
             </p>
 
+            <p className="mb-4 max-w-[560px] text-[11px] font-light leading-[1.6] text-white/22 sm:text-[12px]">
+              Independent tracker. Not affiliated with any bank. Use official
+              bank channels for account-specific issues or guaranteed opening
+              hours.
+            </p>
+
             {/* Dirty secret stat */}
             <p className="max-w-[420px] text-[11px] font-light leading-[1.55] text-white/30 sm:max-w-none sm:text-[12px] sm:leading-normal">
               <span className="text-red-400/70 font-medium">{stats.closedBranches.toLocaleString()}</span>{" "}
@@ -310,9 +316,6 @@ export default async function HomePage() {
           ))}
         </div>
       </section>
-
-        {/* ===== THE DENY SECTION: Monetization ===== */}
-        <SwitchOfferCard closedBranches={stats.closedBranches} />
 
       {/* ===== WHAT'S HAPPENING NOW: Compact Live Feed ===== */}
       <section
@@ -674,6 +677,9 @@ export default async function HomePage() {
           )}
         </div>
       </section>
+
+      {/* ===== OPTIONAL SWITCH CTA ===== */}
+      <SwitchOfferCard closedBranches={stats.closedBranches} />
 
 
 

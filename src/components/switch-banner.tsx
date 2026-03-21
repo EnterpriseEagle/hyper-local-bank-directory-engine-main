@@ -30,17 +30,18 @@ export async function SwitchOfferCard({ closedBranches }: { closedBranches: numb
           {/* Left: The pitch */}
           <div>
             <p className={`mb-3 text-[10px] uppercase tracking-[0.2em] ${offer.theme.accent} opacity-50 font-medium`}>
-              Switch &amp; Save
+              Optional Alternative
             </p>
             <h2 className="mb-3 font-serif text-[clamp(1.5rem,3.5vw,2.25rem)] font-light leading-[1.1] text-white">
-              Tired of empty ATMs
+              If your local setup keeps failing,
               <br />
-              <span className="text-white/35">and closed branches?</span>
+              <span className="text-white/35">compare a switch option.</span>
             </h2>
             <p className="text-[15px] font-light leading-[1.7] text-white/40 max-w-[440px]">
-              The Big Four are closing {closedBranches.toLocaleString()} branches
-              and counting. Stop hoping your ATM has cash. Switch to a bank that
-              actually works for you.
+              {closedBranches.toLocaleString()} branch closures have already
+              been recorded across Australia. If repeated ATM issues,
+              closures, or queues are pushing you to move, this is one
+              managed alternative worth comparing.
             </p>
           </div>
 
@@ -85,9 +86,11 @@ export async function SwitchOfferCard({ closedBranches }: { closedBranches: numb
 
         {/* ASIC disclosure */}
         <p className="text-[10px] text-white/15 mt-8 max-w-[600px]">
-          We may earn a commission if you switch via our links. This does not affect
-          our ratings or the order in which products appear. All information is general
-          in nature and does not constitute financial advice.
+          BANK NEAR ME is an independent tracker, not a bank. We may earn a
+          commission if you switch via our links. This does not affect the
+          closure data, coverage pages, or the order in which locations
+          appear. All information is general in nature and does not
+          constitute financial advice.
         </p>
       </div>
     </section>
