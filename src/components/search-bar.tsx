@@ -50,7 +50,7 @@ export function SearchBar() {
   }
 
   function selectResult(r: SearchRouteResult) {
-    router.push(`/${r.stateSlug}/${r.slug}`);
+    router.push(r.href);
     setQuery("");
     setOpen(false);
   }
@@ -97,7 +97,7 @@ export function SearchBar() {
               submitQuery();
             }
           }}
-          placeholder="Search suburb or postcode..."
+          placeholder="Search suburb, postcode or bank..."
           className="w-full pl-9 pr-4 py-2 text-[12px] font-light tracking-wide border border-white/10 bg-white/[0.03] text-white placeholder:text-white/25 focus:outline-none focus:border-white/25 transition-colors duration-300"
         />
         {loading && (
@@ -111,14 +111,20 @@ export function SearchBar() {
         <div className="absolute z-[80] top-full mt-2 w-full overflow-hidden border border-white/10 bg-[#0a0a0a]/98 shadow-[0_20px_60px_rgba(0,0,0,0.55)] backdrop-blur-sm max-h-64 overflow-y-auto">
           {results.map((r) => (
             <button
-              key={r.slug}
+              key={`${r.kind}-${r.slug}`}
               onClick={() => selectResult(r)}
               className="w-full px-4 py-3 text-left hover:bg-white/[0.03] flex items-center justify-between text-[13px] border-b border-white/5 last:border-0 transition-colors duration-300"
             >
-              <span className="font-light text-white">{r.name}</span>
-              <span className="text-white/30 text-[11px]">
-                {r.postcode}, {r.state}
-              </span>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-light text-white">{r.name}</span>
+                  <span className="rounded-full border border-white/10 px-2 py-0.5 text-[9px] uppercase tracking-[0.16em] text-white/35">
+                    {r.kind === "bank" ? "Bank" : "Area"}
+                  </span>
+                </div>
+                <p className="mt-1 text-[11px] text-white/30">{r.subtitle}</p>
+              </div>
+              <span className="text-white/20">&rarr;</span>
             </button>
           ))}
         </div>
