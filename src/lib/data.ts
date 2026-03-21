@@ -25,6 +25,114 @@ export const STATE_ABBR: Record<string, string> = {
   "australian-capital-territory": "ACT",
 };
 
+const SEARCH_FILLER_WORDS = /\b(near me|open now|branch|branches|atm|atms|location|locations|postcode|suburb|hours)\b/g;
+
+const BANK_SEARCH_ALIASES: Record<string, string[]> = {
+  "commonwealth-bank": ["cba", "commbank"],
+  nab: ["national australia bank"],
+  "bank-of-queensland": ["boq"],
+  "st-george": ["st george bank", "stgeorge"],
+};
+
+function normalizeDirectorySearchValue(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ");
+}
+
+function getDirectorySearchVariants(query: string) {
+  const normalized = normalizeDirectorySearchValue(query);
+  if (!normalized) {
+    return [];
+  }
+
+  const variants = new Set([normalized]);
+  const stripped = normalized
+    .replace(SEARCH_FILLER_WORDS, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (stripped && stripped !== normalized) {
+    variants.add(stripped);
+  }
+
+  return Array.from(variants).filter((variant) => variant.length >= 2);
+}
+
+function buildBankSearchTerms(name: string, slug: string) {
+  const terms = new Set([
+    normalizeDirectorySearchValue(name),
+    normalizeDirectorySearchValue(slug.replace(/-/g, " ")),
+  ]);
+
+  for (const alias of BANK_SEARCH_ALIASES[slug] ?? []) {
+    terms.add(normalizeDirectorySearchValue(alias));
+  }
+
+  return Array.from(terms).filter(Boolean);
+}
+
+function scoreDirectoryMatch(query: string, candidates: string[]) {
+  let bestScore = Number.POSITIVE_INFINITY;
+
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+    if (candidate === query) {
+      return 0;
+    }
+    if (candidate.startsWith(query)) {
+      bestScore = Math.min(bestScore, 1);
+    } else if (candidate.includes(query)) {
+      bestScore = Math.min(bestScore, 2);
+    } else if (query.includes(candidate)) {
+      bestScore = Math.min(bestScore, 3);
+    }
+  }
+
+  return bestScore;
+}
+
+async function runSuburbSearch(term: string, limit: number) {
+  return db
+    .select()
+    .from(suburbs)
+    .where(
+      sql`lower(${suburbs.name}) LIKE ${`%${term}%`} OR ${suburbs.postcode} LIKE ${`%${term}%`}`
+    )
+    .orderBy(
+      sql`CASE
+        WHEN lower(${suburbs.name}) = ${term} THEN 0
+        WHEN ${suburbs.postcode} = ${term} THEN 0
+        WHEN lower(${suburbs.name}) LIKE ${`${term}%`} THEN 1
+        WHEN ${suburbs.postcode} LIKE ${`${term}%`} THEN 1
+        ELSE 2
+      END`,
+      desc(sql`${suburbs.branchCount} + ${suburbs.atmCount}`),
+      desc(suburbs.branchCount),
+      asc(suburbs.name)
+    )
+    .limit(limit);
+}
+
+function formatBankTypeLabel(type: string) {
+  switch (type) {
+    case "big4":
+      return "Big Four bank";
+    case "regional":
+      return "Regional & national bank";
+    case "digital":
+      return "Digital bank";
+    case "credit_union":
+      return "Mutual / credit union";
+    case "international":
+      return "International bank";
+    default:
+      return "Australian bank";
+  }
+}
+
 export async function getStats() {
   const [suburbCount] = await db
     .select({ count: sql<number>`count(*)` })
@@ -159,12 +267,87 @@ export async function getBranchesForSuburb(suburbId: number) {
 }
 
 export async function searchSuburbs(query: string, limit = 10) {
-  return db
-    .select()
-    .from(suburbs)
-    .where(sql`lower(${suburbs.name}) LIKE ${`%${query.toLowerCase()}%`} OR ${suburbs.postcode} LIKE ${`%${query}%`}`)
-    .limit(limit)
-    .orderBy(asc(suburbs.name));
+  const variants = getDirectorySearchVariants(query);
+  const seen = new Set<number>();
+  const matches = [];
+
+  for (const variant of variants) {
+    const results = await runSuburbSearch(variant, limit);
+
+    for (const result of results) {
+      if (seen.has(result.id)) {
+        continue;
+      }
+
+      seen.add(result.id);
+      matches.push(result);
+
+      if (matches.length >= limit) {
+        return matches;
+      }
+    }
+  }
+
+  return matches;
+}
+
+export async function searchBanks(query: string, limit = 10) {
+  const variants = getDirectorySearchVariants(query);
+  if (variants.length === 0) {
+    return [];
+  }
+
+  const allBanks = await getAllBanks();
+
+  return allBanks
+    .map((bank) => {
+      const searchTerms = buildBankSearchTerms(bank.name, bank.slug);
+      const bestScore = variants.reduce(
+        (lowestScore, variant) =>
+          Math.min(lowestScore, scoreDirectoryMatch(variant, searchTerms)),
+        Number.POSITIVE_INFINITY
+      );
+
+      return {
+        ...bank,
+        bestScore,
+      };
+    })
+    .filter((bank) => Number.isFinite(bank.bestScore))
+    .sort((a, b) => {
+      if (a.bestScore !== b.bestScore) {
+        return a.bestScore - b.bestScore;
+      }
+      return a.name.localeCompare(b.name);
+    })
+    .slice(0, limit);
+}
+
+export async function searchDirectorySuggestions(query: string, limit = 8) {
+  const [bankResults, suburbResults] = await Promise.all([
+    searchBanks(query, Math.min(4, limit)),
+    searchSuburbs(query, limit),
+  ]);
+
+  return [
+    ...bankResults.map((bank) => ({
+      kind: "bank" as const,
+      name: bank.name,
+      slug: bank.slug,
+      href: `/bank/${bank.slug}`,
+      subtitle: formatBankTypeLabel(bank.type),
+    })),
+    ...suburbResults.map((suburb) => ({
+      kind: "suburb" as const,
+      name: suburb.name,
+      slug: suburb.slug,
+      href: `/${suburb.stateSlug}/${suburb.slug}`,
+      subtitle: `${suburb.postcode}, ${suburb.state}`,
+      postcode: suburb.postcode,
+      state: suburb.state,
+      stateSlug: suburb.stateSlug,
+    })),
+  ].slice(0, limit);
 }
 
 export async function getAllSuburbSlugs() {

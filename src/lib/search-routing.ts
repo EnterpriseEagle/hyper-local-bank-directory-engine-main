@@ -1,13 +1,34 @@
 export interface SearchRouteResult {
+  kind: "suburb" | "bank";
   name: string;
-  postcode: string;
-  state: string;
   slug: string;
-  stateSlug: string;
+  href: string;
+  subtitle: string;
+  postcode?: string;
+  state?: string;
+  stateSlug?: string;
 }
 
 function normalizeSearchValue(value: string) {
-  return value.trim().toLowerCase().replace(/\s+/g, " ");
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ");
+}
+
+function getDirectMatchCandidates(result: SearchRouteResult) {
+  const candidates = [
+    normalizeSearchValue(result.name),
+    normalizeSearchValue(result.slug.replace(/-/g, " ")),
+  ];
+
+  if (result.kind === "suburb" && result.postcode) {
+    candidates.push(normalizeSearchValue(result.postcode));
+    candidates.push(normalizeSearchValue(`${result.name} ${result.postcode}`));
+  }
+
+  return candidates.filter(Boolean);
 }
 
 export function findDirectSearchMatch(
@@ -20,19 +41,11 @@ export function findDirectSearchMatch(
     return null;
   }
 
-  const exactMatches = results.filter((result) => {
-    const suburb = normalizeSearchValue(result.name);
-    const postcode = normalizeSearchValue(result.postcode);
-    const suburbWithPostcode = normalizeSearchValue(
-      `${result.name} ${result.postcode}`
-    );
-
-    return (
-      normalizedQuery === suburb ||
-      normalizedQuery === postcode ||
-      normalizedQuery === suburbWithPostcode
-    );
-  });
+  const exactMatches = results.filter((result) =>
+    getDirectMatchCandidates(result).some(
+      (candidate) => candidate === normalizedQuery
+    )
+  );
 
   if (exactMatches.length === 1) {
     return exactMatches[0];
@@ -40,13 +53,9 @@ export function findDirectSearchMatch(
 
   if (results.length === 1) {
     const [onlyResult] = results;
-    const suburb = normalizeSearchValue(onlyResult.name);
-    const postcode = normalizeSearchValue(onlyResult.postcode);
+    const directCandidates = getDirectMatchCandidates(onlyResult);
 
-    if (
-      suburb.startsWith(normalizedQuery) ||
-      postcode.startsWith(normalizedQuery)
-    ) {
+    if (directCandidates.some((candidate) => candidate.startsWith(normalizedQuery))) {
       return onlyResult;
     }
   }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { searchSuburbs } from "@/lib/data";
+import { searchDirectorySuggestions } from "@/lib/data";
 
 export async function GET(request: NextRequest) {
   const q = request.nextUrl.searchParams.get("q");
@@ -7,14 +7,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json([]);
   }
 
-  const results = await searchSuburbs(q, 8);
-  return NextResponse.json(
-    results.map((r) => ({
-      name: r.name,
-      postcode: r.postcode,
-      state: r.state,
-      slug: r.slug,
-      stateSlug: r.stateSlug,
-    }))
-  );
+  const results = await searchDirectorySuggestions(q, 8);
+  return NextResponse.json(results);
 }
