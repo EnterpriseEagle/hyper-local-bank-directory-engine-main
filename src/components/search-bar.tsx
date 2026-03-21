@@ -2,18 +2,14 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-
-interface SearchResult {
-  name: string;
-  postcode: string;
-  state: string;
-  slug: string;
-  stateSlug: string;
-}
+import {
+  findDirectSearchMatch,
+  type SearchRouteResult,
+} from "@/lib/search-routing";
 
 export function SearchBar() {
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<SearchResult[]>([]);
+  const [results, setResults] = useState<SearchRouteResult[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -53,7 +49,7 @@ export function SearchBar() {
     }, 200);
   }
 
-  function selectResult(r: SearchResult) {
+  function selectResult(r: SearchRouteResult) {
     router.push(`/${r.stateSlug}/${r.slug}`);
     setQuery("");
     setOpen(false);
@@ -63,8 +59,10 @@ export function SearchBar() {
     const trimmed = query.trim();
     if (trimmed.length < 2) return;
 
-    if (results.length > 0) {
-      selectResult(results[0]);
+    const directMatch = findDirectSearchMatch(trimmed, results);
+
+    if (directMatch) {
+      selectResult(directMatch);
       return;
     }
 

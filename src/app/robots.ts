@@ -7,6 +7,7 @@ export const revalidate = 3600;
 export default function robots(): MetadataRoute.Robots {
   const disallow = ["/api/", "/admin/", "/health"];
   const siteUrl = getSiteUrl();
+  const host = new URL(siteUrl).host;
 
   return {
     rules: [
@@ -31,7 +32,7 @@ export default function robots(): MetadataRoute.Robots {
         disallow,
       },
     ],
-    host: siteUrl,
+    host,
     sitemap: getSitemapIndexUrl(),
   };
 }

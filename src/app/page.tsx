@@ -40,25 +40,6 @@ export const metadata = buildMetadata({
   ],
 });
 
-const HOME_FAQ = [
-  {
-    q: "How do I find a working bank branch near me in Australia?",
-    a: "Search by suburb or postcode to see local branch and ATM listings, recent closure signals, live community reports, and a before-you-visit recommendation before you head out.",
-  },
-  {
-    q: "Which Australian banks are covered on BANK NEAR ME?",
-    a: "The directory covers major national banks, regional banks, digital banks, and local credit unions across thousands of Australian suburbs.",
-  },
-  {
-    q: "How current are the ATM and branch status updates?",
-    a: "Location data is paired with fresh community reports for outages, closure notices, permanent closures, and long queues so each suburb page reflects current ground-level signals, not just static directory data.",
-  },
-  {
-    q: "Where can I track recent bank branch closures in Australia?",
-    a: "The closures tracker highlights recent branch shutdowns, while suburb pages surface new closure notices and other local warnings before official directories catch up.",
-  },
-];
-
 export default async function HomePage() {
   const featuredInsights = getAllInsights().slice(0, 3);
   const [stats, states, closures, recentReports, outageStats, hotspots, approvedIncidents] =
@@ -75,6 +56,29 @@ export default async function HomePage() {
     ]);
 
   const totalReports = stats.totalReports;
+  const hasLiveCommunityReports = totalReports > 0;
+  const homeFaq = [
+    {
+      q: "How do I find a working bank branch near me in Australia?",
+      a: hasLiveCommunityReports
+        ? "Search by suburb or postcode to see local branch and ATM listings, recent closure signals, live community reports, and a before-you-visit recommendation before you head out."
+        : "Search by suburb or postcode to see local branch and ATM listings, recent closure signals, and a before-you-visit recommendation before you head out.",
+    },
+    {
+      q: "Which Australian banks are covered on BANK NEAR ME?",
+      a: "The directory covers major national banks, regional banks, digital banks, and local credit unions across thousands of Australian suburbs.",
+    },
+    {
+      q: "How current are the ATM and branch status updates?",
+      a: hasLiveCommunityReports
+        ? "Location data is paired with fresh community reports for outages, closure notices, permanent closures, and long queues so each suburb page reflects current ground-level signals, not just static directory data."
+        : "Location data combines mapped branch and ATM coverage with closure notices and suburb-level infrastructure signals. Community reports appear on suburb pages after new submissions are approved.",
+    },
+    {
+      q: "Where can I track recent bank branch closures in Australia?",
+      a: "The closures tracker highlights recent branch shutdowns, while suburb pages surface new closure notices and other local warnings before official directories catch up.",
+    },
+  ];
   const liveFeedItems =
     approvedIncidents.length > 0
       ? approvedIncidents.map((incident) => ({
@@ -158,7 +162,7 @@ export default async function HomePage() {
     },
   };
 
-  const faqSchema = buildFAQSchema(HOME_FAQ);
+  const faqSchema = buildFAQSchema(homeFaq);
   const heroQuickLinks = [
     { label: "Bank Near Me", href: "/bank-near-me", mobile: true },
     { label: "ATM Near Me", href: "/atm-near-me", mobile: true },
@@ -204,6 +208,17 @@ export default async function HomePage() {
             <div className="relative z-30 mb-3 sm:mb-4">
               <HeroSearch />
             </div>
+
+            <p className="mb-4 max-w-[520px] text-[11px] font-light leading-[1.6] text-white/28 sm:mb-5 sm:max-w-[560px] sm:text-[12px]">
+              Start with a suburb or postcode.
+              {" "}
+              <Link
+                href="/bank"
+                className="text-white/45 underline underline-offset-4 transition-colors hover:text-white/70"
+              >
+                Looking for a bank brand instead? Browse all banks.
+              </Link>
+            </p>
 
             {/* Dirty secret stat */}
             <p className="max-w-[420px] text-[11px] font-light leading-[1.55] text-white/30 sm:max-w-none sm:text-[12px] sm:leading-normal">
@@ -313,23 +328,34 @@ export default async function HomePage() {
                   <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
                 </span>
                 <p className="text-[10px] uppercase tracking-[0.2em] text-emerald-400/70 font-medium">
-                  Live Now
+                  {hasLiveCommunityReports ? "Live Now" : "Coverage Live"}
                 </p>
               </div>
               <h2 className="font-serif text-[clamp(1.75rem,4vw,3rem)] font-light leading-[1.1] text-white">
-                What&apos;s Happening Right Now
+                {hasLiveCommunityReports
+                  ? "What&apos;s Happening Right Now"
+                  : "Live bank coverage, before the first report lands"}
               </h2>
               <p className="mt-3 max-w-[560px] text-[13px] leading-[1.6] text-white/35">
-                Approved signals now surface proof-backed and multi-report badges when enough evidence clears moderation.
+                {hasLiveCommunityReports
+                  ? "Approved signals now surface proof-backed and multi-report badges when enough evidence clears moderation."
+                  : "Branch coverage and closures are live now. Community status reports will appear here after the first approved submissions clear moderation."}
               </p>
             </div>
             <div className="text-right">
               <div className="text-[clamp(1.25rem,2vw,1.75rem)] font-serif font-light text-white">
-                {totalReports}
+                {hasLiveCommunityReports
+                  ? totalReports
+                  : stats.suburbs.toLocaleString()}
               </div>
               <div className="text-[10px] uppercase tracking-[0.2em] text-white/30">
-                Total Reports
+                {hasLiveCommunityReports ? "Total Reports" : "Suburbs Tracked"}
               </div>
+              {!hasLiveCommunityReports && (
+                <div className="mt-1 text-[10px] text-white/20">
+                  0 approved live reports yet
+                </div>
+              )}
             </div>
           </div>
 
@@ -337,11 +363,25 @@ export default async function HomePage() {
           {liveFeedItems.length === 0 ? (
             <div className="border border-white/5 p-12 text-center">
               <p className="text-white/30 text-[14px] mb-2">
-                No reports yet. Be the first to report.
+                No approved live reports yet.
               </p>
               <p className="text-white/20 text-[12px]">
-                Visit any suburb page and tap a status button.
+                Use closures and suburb coverage first, or visit a suburb page to submit the first status signal.
               </p>
+              <div className="mt-5 flex flex-col items-center justify-center gap-3 sm:flex-row">
+                <Link
+                  href="/closures"
+                  className="border border-white/10 px-4 py-2 text-[11px] uppercase tracking-[0.18em] text-white/45 transition-colors hover:border-white/25 hover:text-white/70"
+                >
+                  See recent closures
+                </Link>
+                <Link
+                  href="/#states"
+                  className="border border-white/10 px-4 py-2 text-[11px] uppercase tracking-[0.18em] text-white/45 transition-colors hover:border-white/25 hover:text-white/70"
+                >
+                  Browse by state
+                </Link>
+              </div>
             </div>
           ) : (
             <div className="bg-black">
@@ -421,7 +461,11 @@ export default async function HomePage() {
             <h2 className="mb-10 font-serif text-[clamp(1.75rem,4vw,3rem)] font-light leading-[1.1] text-white">
               DownDetector for Banks.
               <br />
-              <span className="text-white/30">Crowd-sourced. Real-time. Zero login.</span>
+              <span className="text-white/30">
+                {hasLiveCommunityReports
+                  ? "Crowd-sourced. Real-time. Zero login."
+                  : "Coverage first. Closures first. Community reports rolling out."}
+              </span>
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-white/5">
@@ -441,7 +485,9 @@ export default async function HomePage() {
                 {
                   step: "03",
                   title: "Community Benefits",
-                  desc: "Every report updates live status. Know before you go. Switch if you're fed up.",
+                  desc: hasLiveCommunityReports
+                    ? "Every approved report updates live status. Know before you go. Switch if you're fed up."
+                    : "Every approved report will update live status here. Until then, use suburb coverage and closure pages to avoid dead trips.",
                   icon: "⚡",
                 },
               ].map((item) => (
@@ -640,7 +686,7 @@ export default async function HomePage() {
             Questions People Ask Before Visiting a Branch
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-white/5">
-            {HOME_FAQ.map((item) => (
+            {homeFaq.map((item) => (
               <div key={item.q} className="bg-black p-6 sm:p-8">
                 <h3 className="mb-3 text-[16px] font-medium text-white/90">
                   {item.q}

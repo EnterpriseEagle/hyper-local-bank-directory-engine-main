@@ -2,18 +2,14 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-
-interface SearchResult {
-  name: string;
-  postcode: string;
-  state: string;
-  slug: string;
-  stateSlug: string;
-}
+import {
+  findDirectSearchMatch,
+  type SearchRouteResult,
+} from "@/lib/search-routing";
 
 export function HeroSearch() {
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<SearchResult[]>([]);
+  const [results, setResults] = useState<SearchRouteResult[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -53,7 +49,7 @@ export function HeroSearch() {
     }, 200);
   }
 
-  function selectResult(r: SearchResult) {
+  function selectResult(r: SearchRouteResult) {
     router.push(`/${r.stateSlug}/${r.slug}`);
     setQuery("");
     setOpen(false);
@@ -63,8 +59,10 @@ export function HeroSearch() {
     const trimmed = query.trim();
     if (trimmed.length < 2) return;
 
-    if (results.length > 0) {
-      selectResult(results[0]);
+    const directMatch = findDirectSearchMatch(trimmed, results);
+
+    if (directMatch) {
+      selectResult(directMatch);
       return;
     }
 
@@ -101,6 +99,7 @@ export function HeroSearch() {
               }
             }}
             placeholder="Enter suburb or postcode..."
+            aria-label="Search suburb or postcode"
             className="w-full pl-14 pr-12 py-4 text-[16px] font-light tracking-wide border border-white/15 bg-white/[0.04] text-white placeholder:text-white/30 focus:outline-none focus:border-white/30 focus:bg-white/[0.06] transition-all duration-300 sm:pr-36 sm:py-5"
           />
           {loading && (
@@ -114,7 +113,7 @@ export function HeroSearch() {
           onClick={submitQuery}
           className="inline-flex w-full items-center justify-center gap-2 px-6 py-3 bg-white text-black text-[11px] uppercase tracking-[0.18em] font-medium hover:bg-white/90 transition-colors duration-300 sm:absolute sm:right-2 sm:top-1/2 sm:w-auto sm:-translate-y-1/2 sm:tracking-[0.2em]"
         >
-          Find Banks
+          Search Area
           <span className="text-[13px] leading-none">&rarr;</span>
         </button>
         {loading && (
